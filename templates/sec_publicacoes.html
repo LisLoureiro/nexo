@@ -1,10 +1,10 @@
 {% extends 'base_secretaria.html' %}
 {% block title %}{{ secretaria }} — Publicações{% endblock %}
-{% block content %}
 
+{% block content %}
 <div class="page-head">
   <h1>Publicações</h1>
-  <p>Notícias e comunicados relacionados à {{ secretaria }}</p>
+  <p>Notícias e comunicados relacionados à secretaria de {{ secretaria }}</p>
 </div>
 
 {% if not noticias %}
@@ -21,5 +21,4 @@
   {% endfor %}
 </div>
 {% endif %}
-
 {% endblock %}

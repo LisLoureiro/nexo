@@ -1,39 +1,61 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'noticias' %}
+{% extends 'admin/base_admin.html' %}
 {% block title %}Notícias{% endblock %}
+{% block page_title %}Notícias{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_nova') }}" class="btn btn-accent">+ Nova notícia</a>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>Notícias</h1>
-  <a href="{{ url_for('admin_nova') }}" class="btn">+ Nova Notícia</a>
-</div>
 <div class="card">
+  <div class="card-header">
+    <h3>Todas as notícias ({{ noticias|length }})</h3>
+  </div>
+  {% if not noticias %}
+  <div class="vazio">Nenhuma notícia cadastrada.</div>
+  {% else %}
   <table>
-    <thead><tr><th>#</th><th>Título</th><th>Categoria</th><th>Autor</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Título</th>
+        <th>Categoria</th>
+        <th>Autor</th>
+        <th>Status</th>
+        <th>Data</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
     <tbody>
       {% for n in noticias %}
       <tr>
-        <td>{{ n.id }}</td>
-        <td><strong>{{ n.titulo[:55] }}{% if n.titulo|length>55 %}…{% endif %}</strong></td>
+        <td style="color:var(--muted);font-size:.78rem">{{ n.id }}</td>
+        <td><strong>{{ n.titulo[:70] }}{% if n.titulo|length > 70 %}…{% endif %}</strong></td>
         <td>{{ n.categoria }}</td>
         <td>{{ n.autor }}</td>
-        <td><span class="badge {{ 'pub' if n.publicado else 'rsc' }}">{{ 'Publicada' if n.publicado else 'Rascunho' }}</span></td>
-        <td>{{ n.criado_em.strftime('%d/%m/%Y') }}</td>
         <td>
-          <div class="acoes">
-            <a href="{{ url_for('admin_editar', id=n.id) }}" class="btn btn-sm btn-outline">Editar</a>
-            <form method="post" action="{{ url_for('admin_toggle', id=n.id) }}" style="display:inline">
-              <button class="btn btn-sm btn-outline" title="{{ 'Despublicar' if n.publicado else 'Publicar' }}">{{ '⏸' if n.publicado else '▶' }}</button>
-            </form>
-            <form method="post" action="{{ url_for('admin_excluir', id=n.id) }}" style="display:inline" onsubmit="return confirm('Confirma exclusão?')">
-              <button class="btn btn-sm btn-gray">🗑</button>
-            </form>
-          </div>
+          {% if n.publicado %}
+            <span class="badge badge-pub">Publicada</span>
+          {% else %}
+            <span class="badge badge-draft">Rascunho</span>
+          {% endif %}
+        </td>
+        <td style="white-space:nowrap">{{ n.criado_em.strftime('%d/%m/%Y') }}</td>
+        <td style="white-space:nowrap;display:flex;gap:.35rem">
+          <a href="{{ url_for('admin_editar', id=n.id) }}" class="btn btn-outline btn-sm">Editar</a>
+          <form method="post" action="{{ url_for('admin_toggle', id=n.id) }}" style="display:inline">
+            <button class="btn btn-sm {% if n.publicado %}btn-outline{% else %}btn-success{% endif %}">
+              {% if n.publicado %}Despublicar{% else %}Publicar{% endif %}
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin_excluir', id=n.id) }}" style="display:inline"
+                onsubmit="return confirm('Excluir esta notícia?')">
+            <button class="btn btn-danger btn-sm">Excluir</button>
+          </form>
         </td>
       </tr>
-      {% else %}
-      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhuma notícia cadastrada.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% endif %}
 </div>
 {% endblock %}

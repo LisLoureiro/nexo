@@ -1,49 +1,58 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'noticias' %}
-{% block title %}{{ 'Editar' if noticia else 'Nova' }} Notícia{% endblock %}
+{% extends 'admin/base_admin.html' %}
+{% block title %}{% if noticia %}Editar Notícia{% else %}Nova Notícia{% endif %}{% endblock %}
+{% block page_title %}{% if noticia %}Editar Notícia{% else %}Nova Notícia{% endif %}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_noticias') }}" class="btn btn-outline btn-sm">← Voltar</a>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>{{ 'Editar Notícia' if noticia else 'Nova Notícia' }}</h1>
-</div>
-<div class="card" style="max-width:860px">
-  <form method="post">
-    <div class="form-grid">
-      <div class="full">
-        <label class="form-label">Título *</label>
-        <input class="form-input" type="text" name="titulo" value="{{ noticia.titulo if noticia else '' }}" required maxlength="255">
+<div class="card" style="max-width:780px">
+  <div class="card-body">
+    <form method="post">
+      <div class="form-group">
+        <label for="titulo">Título *</label>
+        <input id="titulo" name="titulo" class="form-control" type="text" required
+               value="{{ noticia.titulo if noticia else '' }}" placeholder="Título da notícia">
       </div>
-      <div class="full">
-        <label class="form-label">Subtítulo / Olho</label>
-        <input class="form-input" type="text" name="subtitulo" value="{{ noticia.subtitulo if noticia else '' }}" maxlength="500">
+      <div class="form-group">
+        <label for="subtitulo">Subtítulo / Chapéu</label>
+        <input id="subtitulo" name="subtitulo" class="form-control" type="text"
+               value="{{ noticia.subtitulo if noticia else '' }}" placeholder="Linha de apoio (opcional)">
       </div>
-      <div>
-        <label class="form-label">Categoria</label>
-        <select class="form-select" name="categoria">
-          {% for c in ['Geral','Política','Economia','Tecnologia','Esportes','Saúde','Cultura','Institucional'] %}
-          <option value="{{ c }}" {{ 'selected' if noticia and noticia.categoria==c }}>{{ c }}</option>
-          {% endfor %}
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="categoria">Categoria</label>
+          <select id="categoria" name="categoria" class="form-control">
+            {% set cats = ['Geral','Política','Economia','Tecnologia','Esportes','Saúde','Cultura','Institucional',
+                           'Gestão','Administração','Educação','Obras','Finanças','Meio Ambiente','Assistência Social','Planejamento'] %}
+            {% for c in cats %}
+            <option value="{{ c }}" {% if noticia and noticia.categoria==c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="autor">Autor</label>
+          <input id="autor" name="autor" class="form-control" type="text"
+                 value="{{ noticia.autor if noticia else 'Redação' }}">
+        </div>
       </div>
-      <div>
-        <label class="form-label">Autor</label>
-        <input class="form-input" type="text" name="autor" value="{{ noticia.autor if noticia else 'Redação' }}" maxlength="100">
+      <div class="form-group">
+        <label for="conteudo">Conteúdo *</label>
+        <textarea id="conteudo" name="conteudo" class="form-control" rows="12" required
+                  placeholder="Corpo da notícia…">{{ noticia.conteudo if noticia else '' }}</textarea>
       </div>
-      <div class="full">
-        <label class="form-label">Conteúdo *</label>
-        <textarea class="form-textarea" name="conteudo" required style="height:280px">{{ noticia.conteudo if noticia else '' }}</textarea>
-        <div class="hint">Cada linha em branco vira um novo parágrafo.</div>
+      <div class="form-check" style="margin-bottom:1.2rem">
+        <input id="publicado" name="publicado" type="checkbox"
+               {% if not noticia or noticia.publicado %}checked{% endif %}>
+        <label for="publicado">Publicar imediatamente</label>
       </div>
-      <div class="full">
-        <label class="check-label">
-          <input type="checkbox" name="publicado" {{ 'checked' if not noticia or noticia.publicado }}>
-          Publicar imediatamente
-        </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          {% if noticia %}Salvar alterações{% else %}Publicar notícia{% endif %}
+        </button>
+        <a href="{{ url_for('admin_noticias') }}" class="btn btn-outline">Cancelar</a>
       </div>
-    </div>
-    <div class="form-actions">
-      <button type="submit" class="btn">{{ 'Salvar alterações' if noticia else 'Publicar notícia' }}</button>
-      <a href="{{ url_for('admin_noticias') }}" class="btn btn-outline">Cancelar</a>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>
 {% endblock %}

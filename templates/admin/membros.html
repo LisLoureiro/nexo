@@ -1,45 +1,54 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'membros' %}
+{% extends 'admin/base_admin.html' %}
 {% block title %}Membros{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Membros</h1>
-  <a href="{{ url_for('admin_membro_novo') }}" class="btn">+ Novo Membro</a>
-</div>
+{% block page_title %}Membros{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_membro_novo') }}" class="btn btn-accent">+ Novo membro</a>
+{% endblock %}
 
-<div style="margin-bottom:1.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
-  <a href="{{ url_for('admin_membros') }}" class="btn btn-sm {% if not secretaria_filtro %}btn-green{% else %}btn-outline{% endif %}">Todos</a>
-  {% for s in secretarias %}
-  <a href="{{ url_for('admin_membros', secretaria=s) }}"
-     class="btn btn-sm {% if secretaria_filtro==s %}btn-green{% else %}btn-outline{% endif %}">{{ s }}</a>
-  {% endfor %}
+{% block content %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="padding:.8rem 1.2rem">
+    <form method="get" style="display:flex;gap:.6rem;align-items:center">
+      <label style="font-size:.78rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Filtrar por secretaria:</label>
+      <select name="secretaria" class="form-control" style="max-width:220px" onchange="this.form.submit()">
+        <option value="">Todas</option>
+        {% for s in secretarias %}
+        <option value="{{ s }}" {% if secretaria_filtro==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      {% if secretaria_filtro %}<a href="{{ url_for('admin_membros') }}" class="btn btn-outline btn-sm">Limpar</a>{% endif %}
+    </form>
+  </div>
 </div>
 
 <div class="card">
+  <div class="card-header"><h3>Membros ({{ membros|length }})</h3></div>
+  {% if not membros %}
+  <div class="vazio">Nenhum membro encontrado.</div>
+  {% else %}
   <table>
-    <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Secretaria</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
+    <thead>
+      <tr><th>Nome</th><th>E-mail</th><th>Secretaria</th><th>Cargo</th><th>Status</th><th>Ações</th></tr>
+    </thead>
     <tbody>
       {% for m in membros %}
       <tr>
-        <td>{{ m.id }}</td>
         <td><strong>{{ m.nome }}</strong></td>
         <td>{{ m.email }}</td>
         <td>{{ m.secretaria }}</td>
         <td>{{ m.cargo or '—' }}</td>
-        <td><span class="badge {{ 'ativo' if m.ativo else 'inativo' }}">{{ 'Ativo' if m.ativo else 'Inativo' }}</span></td>
-        <td>
-          <div class="acoes">
-            <a href="{{ url_for('admin_membro_editar', id=m.id) }}" class="btn btn-sm btn-outline">Editar</a>
-            <form method="post" action="{{ url_for('admin_membro_excluir', id=m.id) }}" style="display:inline" onsubmit="return confirm('Remover membro?')">
-              <button class="btn btn-sm btn-gray">🗑</button>
-            </form>
-          </div>
+        <td>{% if m.ativo %}<span class="badge badge-green">Ativo</span>{% else %}<span class="badge badge-gray">Inativo</span>{% endif %}</td>
+        <td style="white-space:nowrap;display:flex;gap:.35rem">
+          <a href="{{ url_for('admin_membro_editar', id=m.id) }}" class="btn btn-outline btn-sm">Editar</a>
+          <form method="post" action="{{ url_for('admin_membro_excluir', id=m.id) }}" style="display:inline"
+                onsubmit="return confirm('Remover este membro?')">
+            <button class="btn btn-danger btn-sm">Remover</button>
+          </form>
         </td>
       </tr>
-      {% else %}
-      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhum membro cadastrado.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,53 +1,62 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'projetos' %}
+{% extends 'admin/base_admin.html' %}
 {% block title %}Projetos{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Projetos por Secretaria</h1>
-  <a href="{{ url_for('admin_projeto_novo') }}" class="btn">+ Novo Projeto</a>
-</div>
+{% block page_title %}Projetos{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_projeto_novo') }}" class="btn btn-accent">+ Novo projeto</a>
+{% endblock %}
 
-<div style="margin-bottom:1.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
-  <a href="{{ url_for('admin_projetos') }}" class="btn btn-sm {% if not secretaria_filtro %}btn-green{% else %}btn-outline{% endif %}">Todas</a>
-  {% for s in secretarias %}
-  <a href="{{ url_for('admin_projetos', secretaria=s) }}"
-     class="btn btn-sm {% if secretaria_filtro==s %}btn-green{% else %}btn-outline{% endif %}">{{ s }}</a>
-  {% endfor %}
+{% block content %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="padding:.8rem 1.2rem">
+    <form method="get" style="display:flex;gap:.6rem;align-items:center">
+      <label style="font-size:.78rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Filtrar secretaria:</label>
+      <select name="secretaria" class="form-control" style="max-width:220px" onchange="this.form.submit()">
+        <option value="">Todas</option>
+        {% for s in secretarias %}
+        <option value="{{ s }}" {% if secretaria_filtro==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      {% if secretaria_filtro %}<a href="{{ url_for('admin_projetos') }}" class="btn btn-outline btn-sm">Limpar</a>{% endif %}
+    </form>
+  </div>
 </div>
 
 <div class="card">
+  <div class="card-header"><h3>Projetos ({{ projetos|length }})</h3></div>
+  {% if not projetos %}
+  <div class="vazio">Nenhum projeto encontrado.</div>
+  {% else %}
   <table>
-    <thead><tr><th>#</th><th>Título</th><th>Secretaria</th><th>Status</th><th>Progresso</th><th>Responsável</th><th>Ações</th></tr></thead>
+    <thead>
+      <tr><th>Título</th><th>Secretaria</th><th>Status</th><th>Progresso</th><th>Responsável</th><th>Ações</th></tr>
+    </thead>
     <tbody>
-      {% set cls = {'Planejamento':'s-planejamento','Em andamento':'s-em-andamento','Concluído':'s-concluido','Suspenso':'s-suspenso','Cancelado':'s-cancelado'} %}
       {% for p in projetos %}
       <tr>
-        <td>{{ p.id }}</td>
-        <td><strong>{{ p.titulo[:45] }}{% if p.titulo|length>45 %}…{% endif %}</strong></td>
+        <td><strong>{{ p.titulo[:55] }}{% if p.titulo|length>55 %}…{% endif %}</strong></td>
         <td>{{ p.secretaria }}</td>
-        <td><span class="badge {{ cls.get(p.status,'') }}">{{ p.status }}</span></td>
         <td>
+          {% set cls = {'Planejamento':'badge-yellow','Em andamento':'badge-blue','Concluído':'badge-green','Suspenso':'badge-red','Cancelado':'badge-gray'} %}
+          <span class="badge {{ cls.get(p.status,'badge-gray') }}">{{ p.status }}</span>
+        </td>
+        <td style="min-width:100px">
           <div style="display:flex;align-items:center;gap:.5rem">
-            <div style="background:#eee;height:6px;border-radius:3px;width:80px">
-              <div style="background:#c0392b;height:100%;border-radius:3px;width:{{ p.progresso }}%"></div>
-            </div>
-            <span style="font-size:.75rem;color:#888">{{ p.progresso }}%</span>
+            <div class="prog-bar" style="flex:1"><div class="prog-fill" style="width:{{ p.progresso }}%"></div></div>
+            <small style="font-size:.72rem;color:var(--muted);white-space:nowrap">{{ p.progresso }}%</small>
           </div>
         </td>
         <td>{{ p.responsavel or '—' }}</td>
-        <td>
-          <div class="acoes">
-            <a href="{{ url_for('admin_projeto_editar', id=p.id) }}" class="btn btn-sm btn-outline">Editar</a>
-            <form method="post" action="{{ url_for('admin_projeto_excluir', id=p.id) }}" style="display:inline" onsubmit="return confirm('Excluir projeto?')">
-              <button class="btn btn-sm btn-gray">🗑</button>
-            </form>
-          </div>
+        <td style="white-space:nowrap;display:flex;gap:.35rem">
+          <a href="{{ url_for('admin_projeto_editar', id=p.id) }}" class="btn btn-outline btn-sm">Editar</a>
+          <form method="post" action="{{ url_for('admin_projeto_excluir', id=p.id) }}" style="display:inline"
+                onsubmit="return confirm('Excluir este projeto?')">
+            <button class="btn btn-danger btn-sm">Excluir</button>
+          </form>
         </td>
       </tr>
-      {% else %}
-      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhum projeto cadastrado.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% endif %}
 </div>
 {% endblock %}

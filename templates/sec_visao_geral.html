@@ -1,7 +1,7 @@
 {% extends 'base_secretaria.html' %}
 {% block title %}{{ secretaria }} — Visão Geral{% endblock %}
-{% block content %}
 
+{% block content %}
 <div class="page-head">
   <h1>{{ secretaria }}</h1>
   <p>Painel de acompanhamento institucional</p>
@@ -13,7 +13,7 @@
   <div class="stat-box"><div class="n">{{ stats.concluidos }}</div><div class="l">Concluídos</div></div>
   <div class="stat-box"><div class="n">{{ stats.total_membros }}</div><div class="l">Membros</div></div>
   <div class="stat-box"><div class="n">{{ stats.publicacoes }}</div><div class="l">Publicações</div></div>
-  {% if stats.orcamento_total > 0 %}
+  {% if stats.orcamento_total and stats.orcamento_total > 0 %}
   <div class="stat-box">
     <div class="n" style="font-size:1.2rem">R$ {{ "%.0f"|format(stats.orcamento_total / 1000) }}k</div>
     <div class="l">Orçamento total</div>
@@ -63,8 +63,9 @@
       </div>
       {% endfor %}
     </div>
+    {% else %}
+    <div class="vazio" style="padding:2rem">Sem atualizações recentes.</div>
     {% endif %}
   </div>
 </div>
-
 {% endblock %}

@@ -1,45 +1,50 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'membros' %}
-{% block title %}{{ 'Editar' if membro else 'Novo' }} Membro{% endblock %}
+{% extends 'admin/base_admin.html' %}
+{% block title %}{% if membro %}Editar Membro{% else %}Novo Membro{% endif %}{% endblock %}
+{% block page_title %}{% if membro %}Editar Membro{% else %}Novo Membro{% endif %}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_membros') }}" class="btn btn-outline btn-sm">← Voltar</a>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>{{ 'Editar Membro' if membro else 'Novo Membro' }}</h1>
-</div>
-<div class="card" style="max-width:700px">
-  <form method="post">
-    <div class="form-grid">
-      <div class="full">
-        <label class="form-label">Nome *</label>
-        <input class="form-input" type="text" name="nome" value="{{ membro.nome if membro else '' }}" required maxlength="255">
+<div class="card" style="max-width:580px">
+  <div class="card-body">
+    <form method="post">
+      <div class="form-group">
+        <label for="nome">Nome completo *</label>
+        <input id="nome" name="nome" class="form-control" type="text" required
+               value="{{ membro.nome if membro else '' }}">
       </div>
-      <div>
-        <label class="form-label">E-mail *</label>
-        <input class="form-input" type="email" name="email" value="{{ membro.email if membro else '' }}" required maxlength="255">
+      <div class="form-group">
+        <label for="email">E-mail *</label>
+        <input id="email" name="email" class="form-control" type="email" required
+               value="{{ membro.email if membro else '' }}">
       </div>
-      <div>
-        <label class="form-label">Secretaria *</label>
-        <select class="form-select" name="secretaria" required>
-          <option value="">Selecione...</option>
-          {% for s in secretarias %}
-          <option value="{{ s }}" {{ 'selected' if membro and membro.secretaria==s }}>{{ s }}</option>
-          {% endfor %}
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="secretaria">Secretaria *</label>
+          <select id="secretaria" name="secretaria" class="form-control" required>
+            <option value="">Selecione…</option>
+            {% for s in secretarias %}
+            <option value="{{ s }}" {% if membro and membro.secretaria==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cargo">Cargo</label>
+          <input id="cargo" name="cargo" class="form-control" type="text"
+                 value="{{ membro.cargo if membro else '' }}">
+        </div>
       </div>
-      <div class="full">
-        <label class="form-label">Cargo</label>
-        <input class="form-input" type="text" name="cargo" value="{{ membro.cargo if membro else '' }}" maxlength="150">
+      <div class="form-check" style="margin-bottom:1.2rem">
+        <input id="ativo" name="ativo" type="checkbox"
+               {% if not membro or membro.ativo %}checked{% endif %}>
+        <label for="ativo">Membro ativo</label>
       </div>
-      <div class="full">
-        <label class="check-label">
-          <input type="checkbox" name="ativo" {{ 'checked' if not membro or membro.ativo }}>
-          Membro ativo (receberá e-mails)
-        </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if membro %}Salvar{% else %}Cadastrar{% endif %}</button>
+        <a href="{{ url_for('admin_membros') }}" class="btn btn-outline">Cancelar</a>
       </div>
-    </div>
-    <div class="form-actions">
-      <button type="submit" class="btn">{{ 'Salvar' if membro else 'Cadastrar membro' }}</button>
-      <a href="{{ url_for('admin_membros') }}" class="btn btn-outline">Cancelar</a>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>
 {% endblock %}

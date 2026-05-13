@@ -788,11 +788,6 @@ def admin_projeto_excluir(id):
     return redirect(url_for('admin_projetos'))
 
 
-if __name__ == '__main__':
-    init_db()
-    app.run(host='0.0.0.0', port=5000,
-            debug=os.environ.get('FLASK_DEBUG','false').lower()=='true')
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PÚBLICAS — SECRETARIA (sub-páginas via SecretariaManager)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -866,3 +861,9 @@ def sec_eventos(secretaria):
         eventos_json=eventos_json,
         proximos=proximos,
     )
+
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5000,
+            debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')

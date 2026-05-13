@@ -1,0 +1,38 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main # Ação dispara quando houver push na branch principal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production # Usa o ambiente configurado com as regras de proteção
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup [Exemplo: Node.js]
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to Server [Exemplo SSH]
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            cd /var/www/meu-app
+            git pull origin main
+            npm install --production
+            pm2 restart all

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Admin{% endblock %} — Nexo News</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --navy:#0d1b4b; --navy2:#132060; --accent:#4f5de8;
+      --paper:#f0f2ff; --white:#fff; --muted:#5a6080; --border:#d0d5f0;
+      --ink:#0d1b4b; --sidebar-w:220px;
+      --success:#155724; --success-bg:#d4edda;
+      --danger:#7a1010;  --danger-bg:#fde8e8;
+    }
+    body { font-family:'Source Sans 3',sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; display:flex; }
+
+    /* SIDEBAR */
+    .admin-sidebar {
+      width:var(--sidebar-w); background:var(--navy); flex-shrink:0;
+      display:flex; flex-direction:column; min-height:100vh;
+      position:sticky; top:0; height:100vh; overflow-y:auto;
+    }
+    .admin-brand { padding:1.3rem 1.2rem; border-bottom:1px solid rgba(255,255,255,.1); }
+    .admin-brand a { font-family:'Montserrat',sans-serif; font-weight:900; color:#fff; text-decoration:none; font-size:1.1rem; display:flex; align-items:center; gap:.4rem; }
+    .admin-brand .tag { font-size:.6rem; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.1em; display:block; margin-top:.1rem; }
+    .admin-nav { padding:.5rem 0; flex:1; }
+    .admin-nav a {
+      display:flex; align-items:center; gap:.65rem;
+      padding:.6rem 1.2rem; color:rgba(255,255,255,.55); text-decoration:none;
+      font-size:.83rem; font-weight:700; border-left:3px solid transparent; transition:all .14s;
+    }
+    .admin-nav a:hover { color:#fff; background:rgba(255,255,255,.06); }
+    .admin-nav a.active { color:#fff; background:rgba(79,93,232,.25); border-left-color:var(--accent); }
+    .admin-nav .sep { font-size:.58rem; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.2); padding:.8rem 1.2rem .2rem; font-weight:700; }
+    .admin-footer { padding:.9rem 1.2rem; border-top:1px solid rgba(255,255,255,.1); }
+    .admin-footer a { color:rgba(255,255,255,.3); font-size:.75rem; text-decoration:none; }
+    .admin-footer a:hover { color:rgba(255,255,255,.7); }
+
+    /* MAIN */
+    .admin-main { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .admin-topbar {
+      background:var(--white); border-bottom:1px solid var(--border);
+      padding:.7rem 1.5rem; display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:10;
+    }
+    .admin-topbar h2 { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.1rem; color:var(--navy); }
+    .admin-topbar-actions { display:flex; gap:.5rem; align-items:center; }
+    .admin-content { padding:1.5rem; flex:1; }
+
+    /* FLASH */
+    .flash { padding:.75rem 1rem; margin-bottom:1rem; font-size:.88rem; font-weight:600; border-radius:4px; }
+    .flash.success { background:var(--success-bg); color:var(--success); border-left:4px solid #28a745; }
+    .flash.error   { background:var(--danger-bg);  color:var(--danger);  border-left:4px solid #e05252; }
+
+    /* CARDS / TABLE */
+    .card { background:var(--white); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:1.5rem; }
+    .card-header { padding:.85rem 1.2rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .card-header h3 { font-family:'Montserrat',sans-serif; font-weight:900; font-size:.95rem; color:var(--navy); }
+    .card-body { padding:1.2rem; }
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; color:#9aa0c8; border-bottom:2px solid var(--paper); padding:.6rem 1rem; font-weight:700; }
+    td { padding:.6rem 1rem; border-bottom:1px solid var(--paper); font-size:.86rem; vertical-align:middle; }
+    tr:last-child td { border:none; }
+    tr:hover td { background:#f8f9ff; }
+
+    /* BADGES */
+    .badge { display:inline-block; padding:.18rem .55rem; border-radius:20px; font-size:.68rem; font-weight:700; }
+    .badge-pub   { background:#d4edda; color:#155724; }
+    .badge-draft { background:#fff3cd; color:#856404; }
+    .badge-blue  { background:#dde4ff; color:#2236b0; }
+    .badge-red   { background:#fde8e8; color:#7a1010; }
+    .badge-gray  { background:#e2e3e5; color:#5a6070; }
+    .badge-green { background:#d4edda; color:#155724; }
+    .badge-yellow{ background:#fff3cd; color:#856404; }
+
+    /* BTNS */
+    .btn { display:inline-flex; align-items:center; gap:.35rem; padding:.42rem .9rem; border-radius:4px; font-family:inherit; font-size:.82rem; font-weight:700; border:none; cursor:pointer; text-decoration:none; transition:filter .15s; }
+    .btn:hover { filter:brightness(.88); text-decoration:none; }
+    .btn-primary  { background:var(--navy); color:#fff; }
+    .btn-accent   { background:var(--accent); color:#fff; }
+    .btn-success  { background:#28a745; color:#fff; }
+    .btn-danger   { background:#e05252; color:#fff; }
+    .btn-outline  { background:transparent; color:var(--navy); border:1.5px solid var(--border); }
+    .btn-sm { padding:.28rem .65rem; font-size:.76rem; }
+
+    /* FORMS */
+    .form-group { margin-bottom:1.2rem; }
+    .form-group label { display:block; font-size:.78rem; font-weight:700; color:var(--navy); margin-bottom:.35rem; text-transform:uppercase; letter-spacing:.05em; }
+    .form-control { width:100%; padding:.5rem .8rem; border:1.5px solid var(--border); font-family:inherit; font-size:.9rem; border-radius:4px; outline:none; color:var(--ink); background:var(--white); transition:border-color .15s; }
+    .form-control:focus { border-color:var(--accent); }
+    textarea.form-control { resize:vertical; min-height:140px; }
+    select.form-control { cursor:pointer; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .form-check { display:flex; align-items:center; gap:.5rem; font-size:.9rem; }
+    .form-check input { width:16px; height:16px; cursor:pointer; }
+    .form-actions { display:flex; gap:.75rem; padding-top:.5rem; }
+    .range-wrap { display:flex; align-items:center; gap:.8rem; }
+    .range-wrap input[type=range] { flex:1; }
+    .range-val { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1rem; color:var(--accent); min-width:2.5rem; text-align:right; }
+
+    /* STATS */
+    .stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .stat-box { background:var(--white); padding:1.1rem; border-top:3px solid var(--accent); border-radius:0 0 4px 4px; }
+    .stat-box .n { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.9rem; color:var(--accent); line-height:1; }
+    .stat-box .l { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-top:.2rem; }
+
+    /* PROG */
+    .prog-bar { background:#eaecff; height:6px; border-radius:3px; }
+    .prog-fill { height:100%; border-radius:3px; background:var(--accent); }
+
+    .vazio { text-align:center; padding:3rem; color:var(--muted); font-size:.9rem; }
+    @media(max-width:768px){ .admin-sidebar{display:none} .form-row{grid-template-columns:1fr} }
+  </style>
+  {% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+<aside class="admin-sidebar">
+  <div class="admin-brand">
+    <a href="{{ url_for('admin_dashboard') }}">
+      NEXO NEWS
+      <span class="tag">Painel Admin</span>
+    </a>
+  </div>
+  <nav class="admin-nav">
+    <div class="sep">Conteúdo</div>
+    <a href="{{ url_for('admin_dashboard') }}"  class="{{ 'active' if request.endpoint=='admin_dashboard' else '' }}">📊 Dashboard</a>
+    <a href="{{ url_for('admin_noticias') }}"   class="{{ 'active' if request.endpoint in ['admin_noticias','admin_nova','admin_editar'] else '' }}">📰 Notícias</a>
+    <a href="{{ url_for('admin_eventos') }}"    class="{{ 'active' if request.endpoint in ['admin_eventos','admin_evento_novo','admin_evento_editar'] else '' }}">📅 Eventos</a>
+    <div class="sep">Organização</div>
+    <a href="{{ url_for('admin_membros') }}"    class="{{ 'active' if request.endpoint in ['admin_membros','admin_membro_novo','admin_membro_editar'] else '' }}">👥 Membros</a>
+    <a href="{{ url_for('admin_projetos') }}"   class="{{ 'active' if request.endpoint in ['admin_projetos','admin_projeto_novo','admin_projeto_editar'] else '' }}">🚧 Projetos</a>
+    <div class="sep">Comunicação</div>
+    <a href="{{ url_for('admin_email') }}"      class="{{ 'active' if request.endpoint=='admin_email' else '' }}">✉️ E-mail</a>
+    <div class="sep">Portal</div>
+    <a href="{{ url_for('index') }}" target="_blank">🌐 Ver portal</a>
+    <a href="{{ url_for('secretarias') }}" target="_blank">🏛 Secretarias</a>
+  </nav>
+  <div class="admin-footer">
+    <a href="{{ url_for('admin_logout') }}">⬅ Sair</a>
+  </div>
+</aside>
+
+<div class="admin-main">
+  <div class="admin-topbar">
+    <h2>{% block page_title %}Admin{% endblock %}</h2>
+    <div class="admin-topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+  </div>
+  <div class="admin-content">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+</body>
+</html>

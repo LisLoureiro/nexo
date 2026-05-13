@@ -1,39 +1,38 @@
-{% extends 'admin/_base.html' %}
-{% set active = 'eventos' %}
+{% extends 'admin/base_admin.html' %}
 {% block title %}Eventos{% endblock %}
+{% block page_title %}Eventos{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_evento_novo') }}" class="btn btn-accent">+ Novo evento</a>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>Eventos</h1>
-  <a href="{{ url_for('admin_evento_novo') }}" class="btn">+ Novo Evento</a>
-</div>
 <div class="card">
+  <div class="card-header"><h3>Todos os eventos ({{ eventos|length }})</h3></div>
+  {% if not eventos %}
+  <div class="vazio">Nenhum evento cadastrado.</div>
+  {% else %}
   <table>
-    <thead><tr><th>#</th><th>Título</th><th>Data Início</th><th>Data Fim</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead>
+    <thead>
+      <tr><th>Título</th><th>Data início</th><th>Local</th><th>Status</th><th>Ações</th></tr>
+    </thead>
     <tbody>
       {% for e in eventos %}
       <tr>
-        <td>{{ e.id }}</td>
-        <td>
-          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ e.cor }};margin-right:.4rem;vertical-align:middle"></span>
-          <strong>{{ e.titulo[:50] }}{% if e.titulo|length>50 %}…{% endif %}</strong>
-        </td>
+        <td><strong>{{ e.titulo }}</strong></td>
         <td>{{ e.data_inicio.strftime('%d/%m/%Y') }}</td>
-        <td>{{ e.data_fim.strftime('%d/%m/%Y') if e.data_fim else '—' }}</td>
         <td>{{ e.local or '—' }}</td>
-        <td><span class="badge {{ 'pub' if e.publicado else 'rsc' }}">{{ 'Publicado' if e.publicado else 'Rascunho' }}</span></td>
-        <td>
-          <div class="acoes">
-            <a href="{{ url_for('admin_evento_editar', id=e.id) }}" class="btn btn-sm btn-outline">Editar</a>
-            <form method="post" action="{{ url_for('admin_evento_excluir', id=e.id) }}" style="display:inline" onsubmit="return confirm('Excluir evento?')">
-              <button class="btn btn-sm btn-gray">🗑</button>
-            </form>
-          </div>
+        <td>{% if e.publicado %}<span class="badge badge-pub">Publicado</span>{% else %}<span class="badge badge-draft">Oculto</span>{% endif %}</td>
+        <td style="white-space:nowrap;display:flex;gap:.35rem">
+          <a href="{{ url_for('admin_evento_editar', id=e.id) }}" class="btn btn-outline btn-sm">Editar</a>
+          <form method="post" action="{{ url_for('admin_evento_excluir', id=e.id) }}" style="display:inline"
+                onsubmit="return confirm('Excluir este evento?')">
+            <button class="btn btn-danger btn-sm">Excluir</button>
+          </form>
         </td>
       </tr>
-      {% else %}
-      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhum evento cadastrado.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% endif %}
 </div>
 {% endblock %}
