@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Nexo News{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #0d1b4b;
+      --navy2:  #132060;
+      --indigo: #1a2e8a;
+      --accent: #4f5de8;
+      --glow:   #6c7cff;
+      --paper:  #f0f2ff;
+      --white:  #ffffff;
+      --muted:  #5a6080;
+      --border: #d0d5f0;
+      --ink:    #0d1b4b;
+    }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--paper);
+      color: var(--navy);
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #1e2a6e 100%);
+      color: var(--white);
+      padding: 0 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(111,124,255,.35) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 30%;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79,93,232,.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 0;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      position: relative; z-index: 1;
+    }
+    .site-name {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-decoration: none;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .site-name .nexo { color: var(--white); }
+    .site-name .news {
+      background: var(--accent);
+      color: #fff;
+      padding: .1rem .5rem;
+      border-radius: 4px;
+      font-size: 1.5rem;
+      letter-spacing: 0;
+    }
+    .site-name .tag {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.45);
+      margin-left: .2rem;
+      align-self: flex-end;
+      margin-bottom: .25rem;
+    }
+    .header-meta { font-size: .78rem; color: rgba(255,255,255,.45); }
+    .header-meta a { color: rgba(255,255,255,.45); text-decoration: none; }
+    .header-meta a:hover { color: var(--glow); }
+
+    nav {
+      display: flex;
+      gap: 0;
+      padding: .55rem 0;
+      overflow-x: auto;
+      position: relative; z-index: 1;
+    }
+    nav a {
+      color: rgba(255,255,255,.6);
+      text-decoration: none;
+      padding: .4rem .9rem;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      border-radius: 4px;
+      transition: background .2s, color .2s;
+    }
+    nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+    nav a.active { background: var(--accent); color: var(--white); }
+
+    /* ── SEARCH ── */
+    .search-bar {
+      background: var(--white);
+      border-bottom: 3px solid var(--accent);
+      padding: .65rem 2rem;
+      display: flex;
+      gap: .6rem;
+    }
+    .search-bar input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      padding: .5rem .9rem;
+      font-family: inherit;
+      font-size: .9rem;
+      border-radius: 4px;
+      outline: none;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar button {
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      padding: .5rem 1.3rem;
+      font-family: inherit;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .85rem;
+      letter-spacing: .04em;
+      transition: background .2s;
+    }
+    .search-bar button:hover { background: var(--accent); }
+
+    /* ── FLASH ── */
+    .flash { padding: .8rem 2rem; font-weight: 600; font-size: .9rem; }
+    .flash.success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .flash.error   { background: #fde8e8; color: #7a1010; border-left: 4px solid #e05252; }
+
+    /* ── MAIN ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      color: rgba(255,255,255,.35);
+      text-align: center;
+      padding: 1.8rem;
+      font-size: .8rem;
+      margin-top: 4rem;
+    }
+    footer a { color: var(--glow); text-decoration: none; }
+
+    {% block extra_styles %}{% endblock %}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="{{ url_for('index') }}" class="site-name">
+      <span class="nexo">NEXO</span>
+      <span class="news">NEWS</span>
+      <span class="tag">Governamental</span>
+    </a>
+    <span class="header-meta">
+      {{ now.strftime('%d de %B de %Y') if now else '' }} &nbsp;|&nbsp;
+      <a href="{{ url_for('admin_login') }}">Admin</a>
+    </span>
+  </div>
+  <nav>
+    <a href="{{ url_for('index') }}" {% if not categoria_ativa and request.endpoint == 'index' %}class="active"{% endif %}>Início</a>
+    {% for cat in categorias %}
+    <a href="{{ url_for('index', categoria=cat) }}" {% if categoria_ativa==cat %}class="active"{% endif %}>{{ cat }}</a>
+    {% endfor %}
+    <a href="{{ url_for('secretarias') }}" {% if request.endpoint in ['secretarias','secretaria_detalhe','projeto_detalhe','sec_visao_geral','sec_projetos','sec_membros','sec_publicacoes'] %}class="active"{% endif %}>🏛 Secretarias</a>
+    <a href="{{ url_for('calendario') }}" {% if request.endpoint == 'calendario' %}class="active"{% endif %} style="margin-left:auto">📅 Calendário</a>
+  </nav>
+</header>
+
+<div class="search-bar">
+  <form method="get" action="{{ url_for('index') }}" style="display:flex;gap:.6rem;width:100%">
+    <input name="q" placeholder="Buscar notícias…" value="{{ busca or '' }}">
+    <button type="submit">Buscar</button>
+  </form>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% for cat, msg in messages %}
+    <div class="flash {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer>
+  &copy; {{ now.year if now else 2025 }} Nexo News Governamental &nbsp;|&nbsp;
+  <a href="{{ url_for('admin_login') }}">Área Administrativa</a>
+</footer>
+
+</body>
+</html>

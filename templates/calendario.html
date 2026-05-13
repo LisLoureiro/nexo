@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}Calendário de Eventos — Portal News{% endblock %}
+
+{% block extra_styles %}
+.cal-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2rem;
+  align-items: start;
+}
+.cal-wrap {
+  background: var(--white);
+  padding: 1.5rem;
+  border-top: 4px solid var(--accent);
+}
+.page-titulo {
+  font-family: 'Montserrat', sans-serif;font-weight:900;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: .6rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+/* FullCalendar overrides */
+.fc .fc-toolbar-title { font-family: 'Montserrat', sans-serif;font-weight:900; font-size: 1.3rem; }
+.fc .fc-button-primary { background: var(--ink) !important; border-color: var(--ink) !important; font-family: inherit; font-size: .8rem; }
+.fc .fc-button-primary:hover { background: var(--accent) !important; border-color: var(--accent) !important; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--accent) !important; border-color: var(--accent) !important; }
+.fc .fc-daygrid-day-number { color: var(--ink); font-size: .85rem; }
+.fc .fc-col-header-cell-cushion { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-decoration: none; }
+.fc-event { cursor: pointer; border: none !important; border-radius: 3px !important; font-size: .78rem; font-weight: 600; }
+.fc-daygrid-day.fc-day-today { background: #fff5f5 !important; }
+.fc-daygrid-day.fc-day-today .fc-daygrid-day-number { color: var(--accent); font-weight: 700; }
+
+/* Sidebar */
+.sidebar-eventos h3 {
+  font-family: 'Montserrat', sans-serif;font-weight:900;
+  font-size: 1.1rem;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: .4rem;
+  margin-bottom: 1rem;
+}
+.evento-item {
+  padding: .9rem 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: .8rem;
+  align-items: flex-start;
+}
+.evento-item:last-child { border: none; }
+.evento-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.evento-info strong { display: block; font-size: .9rem; margin-bottom: .2rem; }
+.evento-info .data { font-size: .78rem; color: var(--muted); }
+.evento-info .local { font-size: .78rem; color: var(--muted); }
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--white);
+  width: 480px; max-width: 95vw;
+  border-top: 5px solid var(--accent);
+  padding: 2rem;
+  position: relative;
+  animation: slideUp .2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: none; border: none; font-size: 1.4rem;
+  cursor: pointer; color: var(--muted); line-height: 1;
+}
+.modal-close:hover { color: var(--accent); }
+.modal-categoria { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: .5rem; }
+.modal h2 { font-family: 'Montserrat', sans-serif;font-weight:900; font-size: 1.4rem; margin-bottom: 1rem; }
+.modal-meta { display: flex; flex-direction: column; gap: .4rem; font-size: .85rem; color: var(--muted); margin-bottom: 1rem; }
+.modal-meta span::before { margin-right: .4rem; }
+.modal-desc { font-size: .95rem; line-height: 1.6; color: var(--ink); }
+.sem-eventos { text-align: center; padding: 2rem; color: var(--muted); font-size: .9rem; }
+
+@media(max-width:900px){
+  .cal-layout { grid-template-columns: 1fr; }
+  .sidebar-eventos { order: -1; }
+}
+{% endblock %}
+
+{% block content %}
+<h1 class="page-titulo">Calendário de Eventos</h1>
+
+<div class="cal-layout">
+  <div class="cal-wrap">
+    <div id="calendar"></div>
+  </div>
+
+  <aside class="sidebar-eventos">
+    <h3>Próximos Eventos</h3>
+    {% set hoje = now.date() %}
+    {% set proximos = [] %}
+    {% for e in eventos_json %}
+      {% if e.start >= hoje.isoformat() %}
+        {% if proximos.append(e) %}{% endif %}
+      {% endif %}
+    {% endfor %}
+
+    {% if proximos %}
+      {% for e in proximos[:8] %}
+      <div class="evento-item">
+        <div class="evento-dot" style="background:{{ e.color }}"></div>
+        <div class="evento-info">
+          <strong>{{ e.title }}</strong>
+          <span class="data">📅 {{ e.start }}</span>
+          {% if e.extendedProps.local %}
+          <span class="local">📍 {{ e.extendedProps.local }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="sem-eventos">Nenhum evento próximo.</div>
+    {% endif %}
+  </aside>
+</div>
+
+<!-- Modal de detalhe -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="fecharModal()">✕</button>
+    <div class="modal-categoria" id="modal-cor-label">Evento</div>
+    <h2 id="modal-titulo"></h2>
+    <div class="modal-meta">
+      <span id="modal-data"></span>
+      <span id="modal-hora"></span>
+      <span id="modal-local"></span>
+    </div>
+    <p class="modal-desc" id="modal-desc"></p>
+  </div>
+</div>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js"></script>
+<script>
+const eventosData = {{ eventos_json | tojson }};
+
+document.addEventListener('DOMContentLoaded', function () {
+  const cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth',
+    locale: 'pt-br',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,listMonth'
+    },
+    buttonText: { today: 'Hoje', month: 'Mês', list: 'Lista' },
+    events: eventosData,
+    eventClick: function(info) {
+      const e = info.event;
+      const p = e.extendedProps;
+
+      document.getElementById('modal-titulo').textContent = e.title;
+      document.getElementById('modal-cor-label').style.color = e.backgroundColor;
+      document.getElementById('modal-cor-label').textContent = p.local ? p.local : 'Evento';
+
+      // Datas
+      const inicio = e.startStr;
+      const fim = e.endStr && e.endStr !== inicio ? ` → ${e.endStr}` : '';
+      document.getElementById('modal-data').textContent = '📅 ' + inicio + fim;
+
+      // Horas
+      const hora = p.hora_inicio
+        ? '🕐 ' + p.hora_inicio + (p.hora_fim ? ' – ' + p.hora_fim : '')
+        : '';
+      const horaEl = document.getElementById('modal-hora');
+      horaEl.textContent = hora;
+      horaEl.style.display = hora ? '' : 'none';
+
+      // Local
+      const localEl = document.getElementById('modal-local');
+      if (p.local) { localEl.textContent = '📍 ' + p.local; localEl.style.display = ''; }
+      else { localEl.style.display = 'none'; }
+
+      // Descrição
+      const descEl = document.getElementById('modal-desc');
+      descEl.textContent = p.descricao || '';
+      descEl.style.display = p.descricao ? '' : 'none';
+
+      document.getElementById('modal').classList.add('open');
+    }
+  });
+  cal.render();
+});
+
+function fecharModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') fecharModal();
+});
+</script>
+{% endblock %}

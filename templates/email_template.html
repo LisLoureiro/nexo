@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { margin:0; padding:0; background:#f0f2ff; font-family:'Segoe UI',Arial,sans-serif; }
+  .wrap { max-width:600px; margin:2rem auto; background:#fff; border-top:5px solid #4f5de8; border-radius:0 0 4px 4px; }
+  .header { background:linear-gradient(135deg,#0d1b4b 0%,#1a2e8a 100%); padding:1.5rem 2rem; }
+  .header-logo { font-size:1.3rem; font-weight:900; letter-spacing:-0.5px; }
+  .header-logo .nexo { color:#fff; }
+  .header-logo .news { background:#4f5de8; color:#fff; padding:.05rem .35rem; border-radius:3px; margin-left:.2rem; }
+  .body { padding:2rem; }
+  .subject { font-size:1.3rem; font-weight:700; color:#0d1b4b; margin-bottom:1rem; border-bottom:2px solid #f0f2ff; padding-bottom:1rem; }
+  .content { font-size:1rem; line-height:1.7; color:#333; white-space:pre-wrap; }
+  .secretaria-tag { display:inline-block; background:#e8eaff; color:#3040a0; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:.2rem .7rem; border-radius:3px; margin-bottom:1.2rem; }
+  .footer { background:#0d1b4b; padding:1rem 2rem; color:rgba(255,255,255,.4); font-size:.78rem; border-radius:0 0 4px 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-logo"><span class="nexo">NEXO</span><span class="news">NEWS</span></div>
+  </div>
+  <div class="body">
+    {% if secretaria and secretaria != 'Todos' %}
+    <div class="secretaria-tag">Secretaria: {{ secretaria }}</div>
+    {% endif %}
+    <div class="subject">{{ assunto }}</div>
+    <div class="content">{{ mensagem }}</div>
+  </div>
+  <div class="footer">Esta mensagem foi enviada pela administração do Nexo News Governamental.</div>
+</div>
+</body>
+</html>

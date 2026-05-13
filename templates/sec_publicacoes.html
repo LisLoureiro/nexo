@@ -1,0 +1,25 @@
+{% extends 'base_secretaria.html' %}
+{% block title %}{{ secretaria }} — Publicações{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Publicações</h1>
+  <p>Notícias e comunicados relacionados à {{ secretaria }}</p>
+</div>
+
+{% if not noticias %}
+<div class="vazio">Nenhuma publicação encontrada para esta secretaria.</div>
+{% else %}
+<div class="pub-grid">
+  {% for n in noticias %}
+  <a href="{{ url_for('noticia', id=n.id) }}" class="pub-card">
+    <div class="pub-cat">{{ n.categoria }}</div>
+    <h3>{{ n.titulo }}</h3>
+    <p>{{ n.conteudo[:180] }}…</p>
+    <div class="meta">{{ n.autor }} · {{ n.criado_em.strftime('%d/%m/%Y') }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

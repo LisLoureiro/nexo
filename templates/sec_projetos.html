@@ -1,0 +1,49 @@
+{% extends 'base_secretaria.html' %}
+{% block title %}{{ secretaria }} — Projetos{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Projetos</h1>
+  <p>{{ projetos|length }} projeto(s) encontrado(s)</p>
+</div>
+
+<div class="filtros">
+  <a href="{{ url_for('sec_projetos', secretaria=secretaria) }}"
+     class="filtro-btn {% if not status_filtro %}active{% endif %}">Todos</a>
+  {% for s in status_list %}
+  <a href="{{ url_for('sec_projetos', secretaria=secretaria, status=s) }}"
+     class="filtro-btn {% if status_filtro==s %}active{% endif %}">{{ s }}</a>
+  {% endfor %}
+</div>
+
+{% if not projetos %}
+<div class="vazio">Nenhum projeto encontrado.</div>
+{% else %}
+<div class="proj-list">
+  {% for p in projetos %}
+  <a href="{{ url_for('projeto_detalhe', id=p.id) }}" class="proj-card">
+    <div class="proj-row">
+      <h3>{{ p.titulo }}</h3>
+      <span class="badge {{ badge_class(p.status) }}">{{ p.status }}</span>
+    </div>
+    <div class="proj-meta">
+      {% if p.responsavel %}<span>👤 {{ p.responsavel }}</span>{% endif %}
+      {% if p.data_inicio %}<span>📅 {{ p.data_inicio.strftime('%d/%m/%Y') }}</span>{% endif %}
+      {% if p.data_fim %}<span>🏁 {{ p.data_fim.strftime('%d/%m/%Y') }}</span>{% endif %}
+      {% if p.orcamento %}<span>💰 R$ {{ "%.0f"|format(p.orcamento) }}</span>{% endif %}
+    </div>
+    <div class="prog-wrap">
+      <div class="prog">
+        <div class="prog-fill" style="width:{{ p.progresso }}%;background:{{ progresso_cor(p.progresso) }}"></div>
+      </div>
+      <small style="font-size:.72rem;color:var(--muted);white-space:nowrap">{{ p.progresso }}%</small>
+    </div>
+    {% if p.descricao %}
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.6rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{ p.descricao }}</p>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

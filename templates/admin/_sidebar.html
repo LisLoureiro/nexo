@@ -1,0 +1,25 @@
+<aside>
+  <div class="aside-logo"><span class="nexo">NEXO</span><span class="news">NEWS</span></div>
+  <nav>
+    <span class="sep">Conteúdo</span>
+    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if active=='dashboard' }}">Dashboard</a>
+    <a href="{{ url_for('admin_noticias') }}" class="{{ 'active' if active=='noticias' }}">Notícias</a>
+    <a href="{{ url_for('admin_nova') }}" class="{{ 'active' if active=='nova' }}">+ Nova Notícia</a>
+    <span class="sep">Calendário</span>
+    <a href="{{ url_for('admin_eventos') }}" class="{{ 'active' if active=='eventos' }}">Eventos</a>
+    <a href="{{ url_for('admin_evento_novo') }}" class="{{ 'active' if active=='evento_novo' }}">+ Novo Evento</a>
+    <span class="sep">Secretarias</span>
+    <a href="{{ url_for('admin_projetos') }}" class="{{ 'active' if active=='projetos' }}">Projetos</a>
+    <a href="{{ url_for('admin_projeto_novo') }}" class="{{ 'active' if active=='projeto_novo' }}">+ Novo Projeto</a>
+    <span class="sep">Pessoas</span>
+    <a href="{{ url_for('admin_membros') }}" class="{{ 'active' if active=='membros' }}">Membros</a>
+    <a href="{{ url_for('admin_email') }}" class="{{ 'active' if active=='email' }}">✉ Enviar E-mail</a>
+    <span class="sep">Portal</span>
+    <a href="{{ url_for('index') }}" target="_blank">Ver Portal →</a>
+    <a href="{{ url_for('secretarias') }}" target="_blank">Ver Secretarias →</a>
+    <a href="{{ url_for('calendario') }}" target="_blank">Ver Calendário →</a>
+    <span class="sep">Banco de Dados</span>
+    <a href="http://localhost:5050" target="_blank">🗄 pgAdmin →</a>
+  </nav>
+  <div class="logout"><a href="{{ url_for('admin_logout') }}">Sair</a></div>
+</aside>

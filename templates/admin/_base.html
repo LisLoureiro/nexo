@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Admin{% endblock %} — Nexo News</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --navy:   #0d1b4b;
+      --navy2:  #132060;
+      --accent: #4f5de8;
+      --glow:   #6c7cff;
+      --paper:  #f0f2ff;
+      --white:  #ffffff;
+      --muted:  #5a6080;
+      --border: #d0d5f0;
+    }
+    body { font-family:'Source Sans 3',sans-serif; background:var(--paper); color:var(--navy); }
+    .layout { display:flex; min-height:100vh; }
+
+    /* ── sidebar ── */
+    aside {
+      width:230px; flex-shrink:0; display:flex; flex-direction:column;
+      background:linear-gradient(180deg, var(--navy) 0%, var(--navy2) 100%);
+      position:sticky; top:0; height:100vh; overflow-y:auto;
+    }
+    .aside-logo {
+      padding:1.3rem 1.4rem; border-bottom:1px solid rgba(255,255,255,.1);
+      font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.1rem;
+      display:flex; align-items:center; gap:.35rem;
+    }
+    .aside-logo .nexo { color:#fff; }
+    .aside-logo .news { background:var(--accent); color:#fff; padding:.05rem .35rem; border-radius:3px; font-size:.95rem; }
+    aside nav { padding:.5rem 0; flex:1; }
+    aside nav a {
+      display:block; padding:.6rem 1.4rem; color:rgba(255,255,255,.55);
+      text-decoration:none; font-size:.85rem; font-weight:600;
+      border-left:3px solid transparent; transition:all .15s;
+    }
+    aside nav a:hover { background:rgba(255,255,255,.07); color:#fff; border-left-color:rgba(255,255,255,.2); }
+    aside nav a.active { background:rgba(79,93,232,.25); color:#fff; border-left-color:var(--accent); }
+    aside nav .sep {
+      padding:.6rem 1.4rem .2rem; font-size:.62rem; text-transform:uppercase;
+      letter-spacing:.14em; color:rgba(255,255,255,.25); font-weight:700;
+    }
+    .logout { padding:1rem 1.4rem; border-top:1px solid rgba(255,255,255,.1); }
+    .logout a { color:rgba(255,255,255,.35); text-decoration:none; font-size:.82rem; }
+    .logout a:hover { color:var(--glow); }
+
+    /* ── main ── */
+    .main { flex:1; padding:2rem; overflow:auto; }
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; }
+    .page-header h1 { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.7rem; color:var(--navy); }
+
+    /* ── buttons ── */
+    .btn { background:var(--navy); color:#fff; padding:.52rem 1.2rem; text-decoration:none; font-weight:700; font-size:.82rem; border-radius:4px; border:none; cursor:pointer; display:inline-block; letter-spacing:.04em; transition:background .2s; }
+    .btn:hover { background:var(--accent); }
+    .btn-sm { padding:.3rem .7rem; font-size:.75rem; }
+    .btn-outline { background:transparent; color:var(--navy); border:1.5px solid var(--border); }
+    .btn-outline:hover { background:var(--navy); color:#fff; }
+    .btn-gray { background:#8090b0; }
+    .btn-gray:hover { background:#607090; }
+    .btn-green { background:#1a8a5a; }
+    .btn-green:hover { background:#136b46; }
+    .btn-accent { background:var(--accent); }
+    .btn-accent:hover { background:var(--navy); }
+
+    /* ── cards & tables ── */
+    .card { background:var(--white); padding:1.5rem; border-radius:4px; }
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:#9aa0c0; border-bottom:2px solid var(--paper); padding:.6rem .9rem; font-weight:700; }
+    td { padding:.65rem .9rem; border-bottom:1px solid var(--paper); font-size:.86rem; vertical-align:middle; }
+    tr:last-child td { border:none; }
+    tr:hover td { background:#f8f9ff; }
+    .acoes { display:flex; gap:.4rem; flex-wrap:wrap; }
+
+    /* ── badges ── */
+    .badge { display:inline-block; padding:.18rem .6rem; border-radius:20px; font-size:.68rem; font-weight:700; }
+    .badge.pub    { background:#d4edda; color:#155724; }
+    .badge.rsc    { background:#e8eaff; color:#3040a0; }
+    .badge.ativo  { background:#d4edda; color:#155724; }
+    .badge.inativo{ background:#e2e3e5; color:#5a6070; }
+    .s-planejamento { background:#eef0ff; color:#3040a0; }
+    .s-em-andamento { background:#cce5ff; color:#004085; }
+    .s-concluido    { background:#d4edda; color:#155724; }
+    .s-suspenso     { background:#fff3cd; color:#856404; }
+    .s-cancelado    { background:#e2e3e5; color:#5a6070; }
+
+    /* ── stats ── */
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .stat { background:var(--white); padding:1.2rem; border-top:3px solid var(--accent); border-radius:0 0 4px 4px; }
+    .stat .num { font-family:'Montserrat',sans-serif; font-weight:900; font-size:2rem; color:var(--navy); }
+    .stat .lbl { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+
+    /* ── flash ── */
+    .flash { padding:.8rem 1.2rem; border-radius:4px; margin-bottom:1.5rem; font-size:.88rem; font-weight:600; }
+    .flash.success { background:#d4edda; color:#155724; }
+    .flash.error   { background:#fde8e8; color:#7a1010; }
+    .flash.info    { background:#e8eaff; color:#3040a0; }
+
+    /* ── form ── */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+    .full { grid-column:1/-1; }
+    .form-label { display:block; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.4rem; }
+    .form-input,.form-select,.form-textarea { width:100%; padding:.65rem .9rem; border:1.5px solid var(--border); font-family:inherit; font-size:.92rem; border-radius:4px; outline:none; }
+    .form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--accent); }
+    .form-textarea { resize:vertical; line-height:1.6; }
+    .check-label { display:flex; align-items:center; gap:.5rem; font-size:.9rem; cursor:pointer; }
+    .check-label input { width:auto; }
+    .form-actions { display:flex; gap:1rem; margin-top:1.5rem; align-items:center; }
+    .section-sep { font-family:'Montserrat',sans-serif; font-size:.85rem; color:#9aa0c0; padding:.3rem 0; border-bottom:1px solid var(--paper); margin:.4rem 0; grid-column:1/-1; text-transform:uppercase; letter-spacing:.08em; font-weight:700; }
+    .hint { font-size:.72rem; color:#b0b8d0; margin-top:.3rem; }
+
+    @media(max-width:768px){ aside{display:none} .main{padding:1rem} .form-grid{grid-template-columns:1fr} }
+  </style>
+  {% block extra_styles %}{% endblock %}
+</head>
+<body>
+<div class="layout">
+  {% set active = active|default('') %}
+  {% include 'admin/_sidebar.html' %}
+  <div class="main">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'noticias' %}
+{% block title %}Notícias{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Notícias</h1>
+  <a href="{{ url_for('admin_nova') }}" class="btn">+ Nova Notícia</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>#</th><th>Título</th><th>Categoria</th><th>Autor</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+    <tbody>
+      {% for n in noticias %}
+      <tr>
+        <td>{{ n.id }}</td>
+        <td><strong>{{ n.titulo[:55] }}{% if n.titulo|length>55 %}…{% endif %}</strong></td>
+        <td>{{ n.categoria }}</td>
+        <td>{{ n.autor }}</td>
+        <td><span class="badge {{ 'pub' if n.publicado else 'rsc' }}">{{ 'Publicada' if n.publicado else 'Rascunho' }}</span></td>
+        <td>{{ n.criado_em.strftime('%d/%m/%Y') }}</td>
+        <td>
+          <div class="acoes">
+            <a href="{{ url_for('admin_editar', id=n.id) }}" class="btn btn-sm btn-outline">Editar</a>
+            <form method="post" action="{{ url_for('admin_toggle', id=n.id) }}" style="display:inline">
+              <button class="btn btn-sm btn-outline" title="{{ 'Despublicar' if n.publicado else 'Publicar' }}">{{ '⏸' if n.publicado else '▶' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_excluir', id=n.id) }}" style="display:inline" onsubmit="return confirm('Confirma exclusão?')">
+              <button class="btn btn-sm btn-gray">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhuma notícia cadastrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

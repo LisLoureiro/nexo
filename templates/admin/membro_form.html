@@ -1,0 +1,45 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'membros' %}
+{% block title %}{{ 'Editar' if membro else 'Novo' }} Membro{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Editar Membro' if membro else 'Novo Membro' }}</h1>
+</div>
+<div class="card" style="max-width:700px">
+  <form method="post">
+    <div class="form-grid">
+      <div class="full">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" type="text" name="nome" value="{{ membro.nome if membro else '' }}" required maxlength="255">
+      </div>
+      <div>
+        <label class="form-label">E-mail *</label>
+        <input class="form-input" type="email" name="email" value="{{ membro.email if membro else '' }}" required maxlength="255">
+      </div>
+      <div>
+        <label class="form-label">Secretaria *</label>
+        <select class="form-select" name="secretaria" required>
+          <option value="">Selecione...</option>
+          {% for s in secretarias %}
+          <option value="{{ s }}" {{ 'selected' if membro and membro.secretaria==s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="full">
+        <label class="form-label">Cargo</label>
+        <input class="form-input" type="text" name="cargo" value="{{ membro.cargo if membro else '' }}" maxlength="150">
+      </div>
+      <div class="full">
+        <label class="check-label">
+          <input type="checkbox" name="ativo" {{ 'checked' if not membro or membro.ativo }}>
+          Membro ativo (receberá e-mails)
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">{{ 'Salvar' if membro else 'Cadastrar membro' }}</button>
+      <a href="{{ url_for('admin_membros') }}" class="btn btn-outline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

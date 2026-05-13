@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Página não encontrada — Nexo News{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:5rem 2rem">
+  <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:5rem;color:var(--border)">404</h1>
+  <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--navy);margin-bottom:1rem">Página não encontrada</h2>
+  <p style="color:var(--muted);margin-bottom:2rem">Este conteúdo não existe ou foi removido.</p>
+  <a href="{{ url_for('index') }}" style="background:var(--navy);color:#fff;padding:.7rem 1.6rem;text-decoration:none;font-weight:700;border-radius:4px;font-family:'Montserrat',sans-serif">Voltar ao início</a>
+</div>
+{% endblock %}

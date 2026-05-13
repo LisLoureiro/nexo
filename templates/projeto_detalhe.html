@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{{ projeto.titulo }} — Portal News{% endblock %}
+
+{% block extra_styles %}
+.breadcrumb { font-size:.85rem; color:var(--muted); margin-bottom:1.5rem; }
+.breadcrumb a { color:var(--ink); text-decoration:none; }
+.breadcrumb a:hover { color:var(--accent); }
+.layout { display:grid; grid-template-columns:1fr 300px; gap:2rem; align-items:start; }
+.proj-titulo { font-family:'Montserrat',sans-serif;font-weight:900; font-size:2rem; margin-bottom:.5rem; }
+.badge-status { display:inline-block; padding:.3rem .9rem; border-radius:20px; font-size:.78rem; font-weight:700; margin-bottom:1rem; }
+.s-planejamento { background:#fff3cd; color:#856404; }
+.s-em-andamento { background:#cce5ff; color:#004085; }
+.s-concluido    { background:#d4edda; color:#155724; }
+.s-suspenso     { background:#f8d7da; color:#721c24; }
+.s-cancelado    { background:#e2e3e5; color:#383d41; }
+.meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem 1.5rem; margin:1.2rem 0; background:var(--white); padding:1.2rem; }
+.meta-item .lbl { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.meta-item .val { font-size:.95rem; margin-top:.1rem; }
+.prog-wrap { margin:1.5rem 0; }
+.prog-label { display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:.4rem; }
+.prog-bar { background:#eee; height:12px; border-radius:6px; }
+.prog-fill { height:100%; border-radius:6px; background:var(--accent); transition:width .5s; }
+.descricao { font-size:1rem; line-height:1.8; margin:1.5rem 0; }
+.updates-title { font-family:'Montserrat',sans-serif;font-weight:900; font-size:1.2rem; border-bottom:2px solid var(--ink); padding-bottom:.4rem; margin-bottom:1rem; }
+.update-item { padding:.8rem 0; border-bottom:1px solid var(--border); }
+.update-item:last-child { border:none; }
+.update-item .texto { font-size:.9rem; line-height:1.6; }
+.update-item .meta { font-size:.75rem; color:var(--muted); margin-top:.3rem; }
+.sidebar-card { background:var(--white); padding:1.2rem; border-top:3px solid var(--accent); }
+.sidebar-card h3 { font-family:'Montserrat',sans-serif;font-weight:900; font-size:1rem; margin-bottom:.8rem; }
+.sidebar-item { font-size:.85rem; padding:.5rem 0; border-bottom:1px solid var(--border); }
+.sidebar-item:last-child { border:none; }
+@media(max-width:768px){ .layout{grid-template-columns:1fr} .sidebar{order:-1} .meta-grid{grid-template-columns:1fr} }
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('secretarias') }}">Secretarias</a> →
+  <a href="{{ url_for('secretaria_detalhe', secretaria=projeto.secretaria) }}">{{ projeto.secretaria }}</a>
+</div>
+
+<div class="layout">
+  <div>
+    {% set cls = {'Planejamento':'s-planejamento','Em andamento':'s-em-andamento','Concluído':'s-concluido','Suspenso':'s-suspenso','Cancelado':'s-cancelado'} %}
+    <span class="badge-status {{ cls.get(projeto.status,'') }}">{{ projeto.status }}</span>
+    <h1 class="proj-titulo">{{ projeto.titulo }}</h1>
+
+    <div class="meta-grid">
+      {% if projeto.responsavel %}
+      <div class="meta-item"><div class="lbl">Responsável</div><div class="val">{{ projeto.responsavel }}</div></div>
+      {% endif %}
+      {% if projeto.secretaria %}
+      <div class="meta-item"><div class="lbl">Secretaria</div><div class="val">{{ projeto.secretaria }}</div></div>
+      {% endif %}
+      {% if projeto.data_inicio %}
+      <div class="meta-item"><div class="lbl">Início</div><div class="val">{{ projeto.data_inicio.strftime('%d/%m/%Y') }}</div></div>
+      {% endif %}
+      {% if projeto.data_fim %}
+      <div class="meta-item"><div class="lbl">Previsão de término</div><div class="val">{{ projeto.data_fim.strftime('%d/%m/%Y') }}</div></div>
+      {% endif %}
+      {% if projeto.orcamento %}
+      <div class="meta-item"><div class="lbl">Orçamento</div><div class="val">R$ {{ "%.2f"|format(projeto.orcamento) }}</div></div>
+      {% endif %}
+      <div class="meta-item"><div class="lbl">Última atualização</div><div class="val">{{ projeto.atualizado_em.strftime('%d/%m/%Y') }}</div></div>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-label"><span>Progresso</span><strong>{{ projeto.progresso }}%</strong></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:{{ projeto.progresso }}%"></div></div>
+    </div>
+
+    {% if projeto.descricao %}
+    <div class="descricao">
+      {% for p in projeto.descricao.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if updates %}
+    <div class="updates-title">Histórico de atualizações</div>
+    {% for u in updates %}
+    <div class="update-item">
+      <div class="texto">{{ u.texto }}</div>
+      <div class="meta">{{ u.autor }} · {{ u.criado_em.strftime('%d/%m/%Y às %H:%M') }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <h3>Outras secretarias</h3>
+      <a href="{{ url_for('secretarias') }}" style="display:block;font-size:.85rem;color:var(--ink);text-decoration:none;padding:.5rem 0;border-bottom:1px solid var(--border)">← Ver todas as secretarias</a>
+      <div class="sidebar-item">
+        <a href="{{ url_for('secretaria_detalhe', secretaria=projeto.secretaria) }}"
+           style="color:var(--accent);font-weight:600;text-decoration:none;font-size:.85rem">
+          Ver mais projetos de {{ projeto.secretaria }}
+        </a>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

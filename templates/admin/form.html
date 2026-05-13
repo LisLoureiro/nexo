@@ -1,0 +1,49 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'noticias' %}
+{% block title %}{{ 'Editar' if noticia else 'Nova' }} Notícia{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Editar Notícia' if noticia else 'Nova Notícia' }}</h1>
+</div>
+<div class="card" style="max-width:860px">
+  <form method="post">
+    <div class="form-grid">
+      <div class="full">
+        <label class="form-label">Título *</label>
+        <input class="form-input" type="text" name="titulo" value="{{ noticia.titulo if noticia else '' }}" required maxlength="255">
+      </div>
+      <div class="full">
+        <label class="form-label">Subtítulo / Olho</label>
+        <input class="form-input" type="text" name="subtitulo" value="{{ noticia.subtitulo if noticia else '' }}" maxlength="500">
+      </div>
+      <div>
+        <label class="form-label">Categoria</label>
+        <select class="form-select" name="categoria">
+          {% for c in ['Geral','Política','Economia','Tecnologia','Esportes','Saúde','Cultura','Institucional'] %}
+          <option value="{{ c }}" {{ 'selected' if noticia and noticia.categoria==c }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Autor</label>
+        <input class="form-input" type="text" name="autor" value="{{ noticia.autor if noticia else 'Redação' }}" maxlength="100">
+      </div>
+      <div class="full">
+        <label class="form-label">Conteúdo *</label>
+        <textarea class="form-textarea" name="conteudo" required style="height:280px">{{ noticia.conteudo if noticia else '' }}</textarea>
+        <div class="hint">Cada linha em branco vira um novo parágrafo.</div>
+      </div>
+      <div class="full">
+        <label class="check-label">
+          <input type="checkbox" name="publicado" {{ 'checked' if not noticia or noticia.publicado }}>
+          Publicar imediatamente
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">{{ 'Salvar alterações' if noticia else 'Publicar notícia' }}</button>
+      <a href="{{ url_for('admin_noticias') }}" class="btn btn-outline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

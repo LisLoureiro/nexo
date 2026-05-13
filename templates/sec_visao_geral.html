@@ -1,0 +1,70 @@
+{% extends 'base_secretaria.html' %}
+{% block title %}{{ secretaria }} — Visão Geral{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ secretaria }}</h1>
+  <p>Painel de acompanhamento institucional</p>
+</div>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="n">{{ stats.total_projetos }}</div><div class="l">Projetos</div></div>
+  <div class="stat-box"><div class="n">{{ stats.em_andamento }}</div><div class="l">Em andamento</div></div>
+  <div class="stat-box"><div class="n">{{ stats.concluidos }}</div><div class="l">Concluídos</div></div>
+  <div class="stat-box"><div class="n">{{ stats.total_membros }}</div><div class="l">Membros</div></div>
+  <div class="stat-box"><div class="n">{{ stats.publicacoes }}</div><div class="l">Publicações</div></div>
+  {% if stats.orcamento_total > 0 %}
+  <div class="stat-box">
+    <div class="n" style="font-size:1.2rem">R$ {{ "%.0f"|format(stats.orcamento_total / 1000) }}k</div>
+    <div class="l">Orçamento total</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div>
+    {% if projetos_ativos %}
+    <div class="section-title">🚧 Projetos em execução</div>
+    <div class="proj-list">
+      {% for p in projetos_ativos %}
+      <a href="{{ url_for('projeto_detalhe', id=p.id) }}" class="proj-card">
+        <div class="proj-row">
+          <h3>{{ p.titulo }}</h3>
+          <span class="badge {{ badge_class(p.status) }}">{{ p.status }}</span>
+        </div>
+        <div class="proj-meta">
+          {% if p.responsavel %}<span>👤 {{ p.responsavel }}</span>{% endif %}
+          {% if p.data_fim %}<span>🏁 {{ p.data_fim.strftime('%d/%m/%Y') }}</span>{% endif %}
+        </div>
+        <div class="prog-wrap">
+          <div class="prog">
+            <div class="prog-fill" style="width:{{ p.progresso }}%;background:{{ progresso_cor(p.progresso) }}"></div>
+          </div>
+          <small style="font-size:.72rem;color:var(--muted);white-space:nowrap">{{ p.progresso }}%</small>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="vazio">Nenhum projeto em andamento.</div>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if updates_recentes %}
+    <div class="section-title">🕐 Atualizações recentes</div>
+    <div class="timeline">
+      {% for u in updates_recentes %}
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-proj">{{ u.projeto_titulo }}</div>
+        <div class="tl-date">{{ u.criado_em.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div class="tl-text">{{ u.texto }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

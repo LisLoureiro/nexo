@@ -1,0 +1,32 @@
+{% extends 'base_secretaria.html' %}
+{% block title %}{{ secretaria }} — Membros{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Membros</h1>
+  <p>{{ membros|length }} pessoa(s) na {{ secretaria }}</p>
+</div>
+
+{% if not membros %}
+<div class="vazio">Nenhum membro cadastrado nesta secretaria.</div>
+{% else %}
+<div class="member-grid">
+  {% for m in membros %}
+  <div class="member-card">
+    <div class="member-avatar">{{ iniciais(m.nome) }}</div>
+    <div class="member-nome">{{ m.nome }}</div>
+    {% if m.cargo %}<div class="member-cargo">{{ m.cargo }}</div>{% endif %}
+    <div class="member-email">{{ m.email }}</div>
+    <div class="member-badge">
+      {% if m.ativo %}
+        <span class="badge badge-green">Ativo</span>
+      {% else %}
+        <span class="badge badge-gray">Inativo</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

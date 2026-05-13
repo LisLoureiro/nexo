@@ -1,0 +1,103 @@
+{% extends 'base_secretaria.html' %}
+{% block title %}{{ secretaria }} — Eventos{% endblock %}
+{% block extra_styles %}
+/* FullCalendar overrides */
+.fc .fc-toolbar-title { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.1rem; color:var(--navy); }
+.fc .fc-button-primary { background:var(--navy) !important; border-color:var(--navy) !important; font-family:inherit; font-size:.78rem; font-weight:700; }
+.fc .fc-button-primary:hover { background:var(--accent) !important; border-color:var(--accent) !important; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { background:var(--accent) !important; border-color:var(--accent) !important; }
+.fc .fc-col-header-cell-cushion { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); text-decoration:none; }
+.fc .fc-daygrid-day-number { font-size:.8rem; color:var(--navy); }
+.fc-event { cursor:pointer; border:none !important; border-radius:3px !important; font-size:.74rem; font-weight:700; }
+.fc-daygrid-day.fc-day-today { background:#eaecff !important; }
+.fc-daygrid-day.fc-day-today .fc-daygrid-day-number { color:var(--accent); font-weight:700; }
+.cal-card { background:var(--white); padding:1.3rem; }
+
+/* modal */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(13,27,75,.55); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:#fff; width:460px; max-width:94vw; border-top:4px solid var(--accent); padding:2rem; position:relative; border-radius:0 0 6px 6px; animation:fadeUp .18s ease; }
+@keyframes fadeUp { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-close { position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); }
+.modal-close:hover { color:var(--accent); }
+.modal-ev-titulo { font-family:'Montserrat',sans-serif; font-weight:900; font-size:1.25rem; color:var(--navy); margin-bottom:.8rem; }
+.modal-meta { display:flex; flex-direction:column; gap:.35rem; font-size:.84rem; color:var(--muted); margin-bottom:.9rem; }
+.modal-desc { font-size:.9rem; line-height:1.6; color:var(--navy); }
+{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <h1>Eventos</h1>
+  <p>Calendário de eventos e atividades</p>
+</div>
+
+<div class="grid-2" style="grid-template-columns:1fr 280px">
+  <div class="cal-card">
+    <div id="calendar"></div>
+  </div>
+
+  <div>
+    <div class="section-title">Próximos eventos</div>
+    {% if proximos %}
+      {% for e in proximos %}
+      <div class="ev-card" style="border-left-color:{{ e.cor }}">
+        <h4>{{ e.titulo }}</h4>
+        <div class="ev-meta">
+          <span>📅 {{ e.data_inicio.strftime('%d/%m/%Y') }}</span>
+          {% if e.local %}<span>📍 {{ e.local }}</span>{% endif %}
+          {% if e.hora_inicio %}<span>🕐 {{ e.hora_inicio.strftime('%H:%M') }}</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="vazio">Nenhum evento próximo.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="fecharModal()">✕</button>
+    <div class="modal-ev-titulo" id="modal-titulo"></div>
+    <div class="modal-meta">
+      <span id="modal-data"></span>
+      <span id="modal-hora"></span>
+      <span id="modal-local"></span>
+    </div>
+    <p class="modal-desc" id="modal-desc"></p>
+  </div>
+</div>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js"></script>
+<script>
+const eventosData = {{ eventos_json | tojson }};
+document.addEventListener('DOMContentLoaded', function () {
+  new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth', locale: 'pt-br',
+    headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,listMonth' },
+    buttonText: { today:'Hoje', month:'Mês', list:'Lista' },
+    events: eventosData,
+    eventClick: function(info) {
+      const e = info.event, p = e.extendedProps;
+      document.getElementById('modal-titulo').textContent = e.title;
+      document.getElementById('modal-data').textContent = '📅 ' + e.startStr + (e.endStr && e.endStr !== e.startStr ? ' → ' + e.endStr : '');
+      const hora = p.hora_inicio ? '🕐 ' + p.hora_inicio + (p.hora_fim ? ' – ' + p.hora_fim : '') : '';
+      const horaEl = document.getElementById('modal-hora');
+      horaEl.textContent = hora; horaEl.style.display = hora ? '' : 'none';
+      const localEl = document.getElementById('modal-local');
+      if (p.local) { localEl.textContent = '📍 ' + p.local; localEl.style.display = ''; }
+      else { localEl.style.display = 'none'; }
+      const descEl = document.getElementById('modal-desc');
+      descEl.textContent = p.descricao || ''; descEl.style.display = p.descricao ? '' : 'none';
+      document.getElementById('modal').classList.add('open');
+    }
+  }).render();
+});
+function fecharModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) fecharModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+</script>
+{% endblock %}

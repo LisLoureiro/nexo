@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Nexo News — Início{% endblock %}
+
+{% block extra_styles %}
+.destaque {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 2px solid var(--border);
+}
+.card-principal {
+  background: var(--white);
+  border-top: 4px solid var(--accent);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.card-principal::after {
+  content:'';
+  position:absolute; bottom:-30px; right:-30px;
+  width:140px; height:140px; border-radius:50%;
+  background: radial-gradient(circle, rgba(79,93,232,.07) 0%, transparent 70%);
+}
+.card-principal .categoria {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--accent); margin-bottom: .5rem;
+  display: inline-block;
+}
+.card-principal h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.9rem; line-height: 1.2; margin-bottom: .6rem;
+  color: var(--navy);
+}
+.card-principal .sub { color: var(--muted); margin-bottom: 1rem; font-size: 1rem; }
+.card-principal .meta { font-size: .78rem; color: var(--muted); }
+.card-principal a.ler {
+  display: inline-block; margin-top: 1.2rem;
+  background: var(--navy); color: var(--white);
+  padding: .5rem 1.3rem; text-decoration: none;
+  font-weight: 700; font-size: .82rem; letter-spacing: .06em;
+  border-radius: 4px; transition: background .2s;
+}
+.card-principal a.ler:hover { background: var(--accent); }
+
+.sidebar-news { display: flex; flex-direction: column; gap: 1rem; }
+.card-mini {
+  background: var(--white); padding: 1rem 1.2rem;
+  border-left: 3px solid var(--border); transition: border-color .2s;
+}
+.card-mini:hover { border-left-color: var(--accent); }
+.card-mini .categoria { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--accent); }
+.card-mini h3 { font-family: 'Montserrat', sans-serif; font-size: .95rem; margin: .3rem 0 .3rem; }
+.card-mini h3 a { color: var(--navy); text-decoration: none; }
+.card-mini h3 a:hover { color: var(--accent); }
+.card-mini .meta { font-size: .72rem; color: var(--muted); }
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.2rem;
+}
+.card {
+  background: var(--white); padding: 1.4rem;
+  border-bottom: 3px solid transparent; transition: border-color .2s, transform .15s;
+}
+.card:hover { border-bottom-color: var(--accent); transform: translateY(-2px); }
+.card .categoria { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--accent); margin-bottom: .4rem; }
+.card h3 { font-family: 'Montserrat', sans-serif; font-size: 1.05rem; margin-bottom: .4rem; color: var(--navy); }
+.card h3 a { color: var(--navy); text-decoration: none; }
+.card h3 a:hover { color: var(--accent); }
+.card p { font-size: .88rem; color: var(--muted); margin-bottom: .8rem;
+          overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.card .meta { font-size: .72rem; color: var(--muted); }
+
+.secao-titulo {
+  font-family: 'Montserrat', sans-serif; font-weight: 900;
+  font-size: 1.1rem; letter-spacing: -.02em;
+  border-bottom: 2px solid var(--navy); padding-bottom: .4rem; margin-bottom: 1.5rem;
+  color: var(--navy);
+}
+.vazio { text-align: center; padding: 4rem; color: var(--muted); }
+.vazio h2 { font-family: 'Montserrat', sans-serif; margin-bottom: .5rem; }
+
+@media(max-width:768px){
+  .destaque { grid-template-columns: 1fr; }
+  .card-principal h2 { font-size: 1.3rem; }
+}
+{% endblock %}
+
+{% block content %}
+{% if not noticias %}
+  <div class="vazio">
+    <h2>Nenhuma notícia encontrada</h2>
+    <p>{% if busca %}Tente outros termos de busca.{% else %}Ainda não há notícias publicadas.{% endif %}</p>
+  </div>
+{% else %}
+
+{% if not busca and not categoria_ativa %}
+  <div class="destaque">
+    {% set principal = noticias[0] %}
+    <div class="card-principal">
+      <div class="categoria">{{ principal.categoria }}</div>
+      <h2>{{ principal.titulo }}</h2>
+      {% if principal.subtitulo %}<p class="sub">{{ principal.subtitulo }}</p>{% endif %}
+      <div class="meta">{{ principal.autor }} &nbsp;·&nbsp; {{ principal.criado_em.strftime('%d/%m/%Y %H:%M') }}</div>
+      <a href="{{ url_for('noticia', id=principal.id) }}" class="ler">Ler notícia →</a>
+    </div>
+    <div class="sidebar-news">
+      {% for n in noticias[1:4] %}
+      <div class="card-mini">
+        <div class="categoria">{{ n.categoria }}</div>
+        <h3><a href="{{ url_for('noticia', id=n.id) }}">{{ n.titulo }}</a></h3>
+        <div class="meta">{{ n.criado_em.strftime('%d/%m/%Y') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <h2 class="secao-titulo">Mais notícias</h2>
+  <div class="grade">
+    {% for n in noticias[4:] %}
+    <div class="card">
+      <div class="categoria">{{ n.categoria }}</div>
+      <h3><a href="{{ url_for('noticia', id=n.id) }}">{{ n.titulo }}</a></h3>
+      <p>{{ n.conteudo[:200] }}…</p>
+      <div class="meta">{{ n.autor }} · {{ n.criado_em.strftime('%d/%m/%Y') }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <h2 class="secao-titulo">
+    {% if busca %}Resultados para "{{ busca }}"{% else %}{{ categoria_ativa }}{% endif %}
+    <small style="font-size:.78rem;font-weight:400;color:var(--muted)"> — {{ noticias|length }} notícia(s)</small>
+  </h2>
+  <div class="grade">
+    {% for n in noticias %}
+    <div class="card">
+      <div class="categoria">{{ n.categoria }}</div>
+      <h3><a href="{{ url_for('noticia', id=n.id) }}">{{ n.titulo }}</a></h3>
+      <p>{{ n.conteudo[:200] }}…</p>
+      <div class="meta">{{ n.autor }} · {{ n.criado_em.strftime('%d/%m/%Y') }}</div>
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

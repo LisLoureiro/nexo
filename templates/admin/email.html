@@ -1,0 +1,77 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'email' %}
+{% block title %}Enviar E-mail{% endblock %}
+{% block extra_styles %}
+.smtp-warn { background:#fff3cd; border-left:4px solid #f0ad4e; padding:1rem 1.2rem; margin-bottom:1.5rem; font-size:.9rem; }
+.smtp-ok   { background:#d4edda; border-left:4px solid #28a745; padding:.8rem 1.2rem; margin-bottom:1.5rem; font-size:.85rem; }
+.log-table td { font-size:.82rem; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:.4rem; }
+.dot.ok  { background:#28a745; }
+.dot.err { background:#c0392b; }
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Enviar Notificação por E-mail</h1>
+</div>
+
+{% if not smtp_ok %}
+<div class="smtp-warn">
+  ⚠️ <strong>SMTP não configurado.</strong> Defina as variáveis <code>SMTP_USER</code>, <code>SMTP_PASS</code> e <code>SMTP_FROM</code> no <code>docker-compose.yml</code> para habilitar o envio de e-mails.
+  Para Gmail, use uma <a href="https://myaccount.google.com/apppasswords" target="_blank">Senha de App</a>.
+</div>
+{% else %}
+<div class="smtp-ok">✅ SMTP configurado como <strong>{{ smtp_user }}</strong>. Pronto para envio.</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start">
+  <div class="card">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1.5rem">Compor mensagem</h2>
+    <form method="post">
+      <div style="margin-bottom:1.2rem">
+        <label class="form-label">Destinatários</label>
+        <select class="form-select" name="secretaria">
+          <option value="">Todos os membros ativos</option>
+          {% for s in secretarias %}
+          <option value="{{ s }}">Secretaria: {{ s }}</option>
+          {% endfor %}
+        </select>
+        <div class="hint">Deixe "Todos" para enviar para toda a lista.</div>
+      </div>
+      <div style="margin-bottom:1.2rem">
+        <label class="form-label">Assunto *</label>
+        <input class="form-input" type="text" name="assunto" required maxlength="255" placeholder="Assunto do e-mail...">
+      </div>
+      <div style="margin-bottom:1.2rem">
+        <label class="form-label">Mensagem *</label>
+        <textarea class="form-textarea" name="mensagem" required style="height:220px" placeholder="Escreva sua mensagem aqui..."></textarea>
+      </div>
+      <button type="submit" class="btn" {{ 'disabled style=opacity:.5;cursor:not-allowed' if not smtp_ok }}>
+        ✉ Enviar e-mail
+      </button>
+    </form>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem">Histórico de envios</h2>
+      {% if logs %}
+      <table class="log-table">
+        <thead><tr><th></th><th>Assunto</th><th>Secretaria</th><th>Data</th></tr></thead>
+        <tbody>
+          {% for l in logs %}
+          <tr>
+            <td><span class="dot {{ 'ok' if l.sucesso else 'err' }}"></span></td>
+            <td>{{ l.assunto[:40] }}{% if l.assunto|length>40 %}…{% endif %}</td>
+            <td>{{ l.secretaria or 'Todos' }}</td>
+            <td>{{ l.enviado_em.strftime('%d/%m %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="color:#aaa;font-size:.85rem;text-align:center;padding:1.5rem">Nenhum envio registrado.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

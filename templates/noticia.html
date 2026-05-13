@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}{{ noticia.titulo }} — Nexo News{% endblock %}
+
+{% block extra_styles %}
+.artigo-wrapper { display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem; }
+.artigo header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+.artigo .categoria {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--accent); margin-bottom: .8rem; display: inline-block;
+}
+.artigo h1 {
+  font-family: 'Montserrat', sans-serif; font-weight: 900;
+  font-size: 2.2rem; line-height: 1.2; margin-bottom: .8rem; color: var(--navy);
+}
+.artigo .subtitulo { font-size: 1.1rem; color: var(--muted); margin-bottom: 1rem; }
+.artigo .meta { font-size: .82rem; color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap; }
+.artigo .conteudo { font-size: 1.05rem; line-height: 1.85; }
+.artigo .conteudo p { margin-bottom: 1.2rem; color: #1e2a4a; }
+
+.sidebar h3 {
+  font-family: 'Montserrat', sans-serif; font-weight: 800;
+  border-bottom: 2px solid var(--navy); padding-bottom: .4rem; margin-bottom: 1rem; color: var(--navy);
+}
+.rel-card { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.rel-card a { color: var(--navy); text-decoration: none; font-weight: 600; font-size: .92rem; }
+.rel-card a:hover { color: var(--accent); }
+.rel-card .meta { font-size: .72rem; color: var(--muted); margin-top: .3rem; }
+
+.voltar { display: inline-block; margin-bottom: 1.5rem; color: var(--muted); text-decoration: none; font-size: .82rem; font-weight: 600; }
+.voltar:hover { color: var(--accent); }
+@media(max-width:768px){ .artigo-wrapper{grid-template-columns:1fr} .artigo h1{font-size:1.5rem} }
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('index') }}" class="voltar">← Voltar às notícias</a>
+<div class="artigo-wrapper">
+  <article class="artigo">
+    <header>
+      <span class="categoria">{{ noticia.categoria }}</span>
+      <h1>{{ noticia.titulo }}</h1>
+      {% if noticia.subtitulo %}<p class="subtitulo">{{ noticia.subtitulo }}</p>{% endif %}
+      <div class="meta">
+        <span>✍ {{ noticia.autor }}</span>
+        <span>📅 {{ noticia.criado_em.strftime('%d/%m/%Y às %H:%M') }}</span>
+        {% if noticia.atualizado_em != noticia.criado_em %}
+        <span>🔄 Atualizado em {{ noticia.atualizado_em.strftime('%d/%m/%Y') }}</span>
+        {% endif %}
+      </div>
+    </header>
+    <div class="conteudo">
+      {% for paragrafo in noticia.conteudo.split('\n') %}
+        {% if paragrafo.strip() %}<p>{{ paragrafo }}</p>{% endif %}
+      {% endfor %}
+    </div>
+  </article>
+  <aside class="sidebar">
+    {% if relacionadas %}
+    <h3>Relacionadas</h3>
+    {% for r in relacionadas %}
+    <div class="rel-card">
+      <a href="{{ url_for('noticia', id=r.id) }}">{{ r.titulo }}</a>
+      <div class="meta">{{ r.criado_em.strftime('%d/%m/%Y') }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

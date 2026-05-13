@@ -1,0 +1,45 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'dashboard' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <a href="{{ url_for('admin_nova') }}" class="btn">+ Nova Notícia</a>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="num">{{ total }}</div><div class="lbl">Notícias</div></div>
+  <div class="stat"><div class="num">{{ publicadas }}</div><div class="lbl">Publicadas</div></div>
+  <div class="stat"><div class="num">{{ total_eventos }}</div><div class="lbl">Eventos</div></div>
+  <div class="stat"><div class="num">{{ total_projetos }}</div><div class="lbl">Projetos</div></div>
+  <div class="stat"><div class="num">{{ total_membros }}</div><div class="lbl">Membros ativos</div></div>
+</div>
+
+<div class="card">
+  <h2 style="font-family:'Playfair Display',serif;margin-bottom:1rem;font-size:1.1rem">Últimas notícias</h2>
+  <table>
+    <thead><tr><th>#</th><th>Título</th><th>Categoria</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+    <tbody>
+      {% for n in noticias %}
+      <tr>
+        <td>{{ n.id }}</td>
+        <td><strong>{{ n.titulo[:55] }}{% if n.titulo|length>55 %}…{% endif %}</strong></td>
+        <td>{{ n.categoria }}</td>
+        <td><span class="badge {{ 'pub' if n.publicado else 'rsc' }}">{{ 'Publicada' if n.publicado else 'Rascunho' }}</span></td>
+        <td>{{ n.criado_em.strftime('%d/%m/%Y') }}</td>
+        <td>
+          <div class="acoes">
+            <a href="{{ url_for('admin_editar', id=n.id) }}" class="btn btn-sm btn-outline">Editar</a>
+            <form method="post" action="{{ url_for('admin_toggle', id=n.id) }}" style="display:inline">
+              <button class="btn btn-sm btn-outline">{{ '⏸' if n.publicado else '▶' }}</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;color:#aaa;padding:2rem">Nenhuma notícia.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

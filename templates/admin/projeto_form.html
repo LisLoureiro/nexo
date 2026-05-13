@@ -1,0 +1,99 @@
+{% extends 'admin/_base.html' %}
+{% set active = projeto and 'projetos' or 'projeto_novo' %}
+{% block title %}{{ 'Editar' if projeto else 'Novo' }} Projeto{% endblock %}
+{% block extra_styles %}
+.prog-display { font-size:1.2rem; font-weight:700; color:#c0392b; width:3rem; text-align:right; }
+.update-item { padding:.7rem 0; border-bottom:1px solid #f0ede8; font-size:.88rem; }
+.update-item:last-child { border:none; }
+.update-meta { font-size:.75rem; color:#aaa; margin-top:.2rem; }
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Editar Projeto' if projeto else 'Novo Projeto' }}</h1>
+</div>
+
+<div style="display:grid;grid-template-columns:{{ '1fr 340px' if projeto else '1fr' }};gap:2rem;align-items:start">
+  <div class="card">
+    <form method="post">
+      <input type="hidden" name="action" value="save">
+      <div class="form-grid">
+        <div class="full">
+          <label class="form-label">Título *</label>
+          <input class="form-input" type="text" name="titulo" value="{{ projeto.titulo if projeto else '' }}" required>
+        </div>
+        <div>
+          <label class="form-label">Secretaria *</label>
+          <select class="form-select" name="secretaria" required>
+            <option value="">Selecione...</option>
+            {% for s in secretarias %}
+            <option value="{{ s }}" {{ 'selected' if projeto and projeto.secretaria==s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Status</label>
+          <select class="form-select" name="status">
+            {% for s in status_list %}
+            <option value="{{ s }}" {{ 'selected' if projeto and projeto.status==s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="full">
+          <label class="form-label">Descrição</label>
+          <textarea class="form-textarea" name="descricao" style="height:140px">{{ projeto.descricao if projeto else '' }}</textarea>
+        </div>
+        <div>
+          <label class="form-label">Responsável</label>
+          <input class="form-input" type="text" name="responsavel" value="{{ projeto.responsavel if projeto else '' }}">
+        </div>
+        <div>
+          <label class="form-label">Orçamento (R$)</label>
+          <input class="form-input" type="number" step="0.01" name="orcamento" value="{{ projeto.orcamento if projeto else '' }}">
+        </div>
+        <div>
+          <label class="form-label">Data de Início</label>
+          <input class="form-input" type="date" name="data_inicio" value="{{ projeto.data_inicio.isoformat() if projeto and projeto.data_inicio else '' }}">
+        </div>
+        <div>
+          <label class="form-label">Previsão de Término</label>
+          <input class="form-input" type="date" name="data_fim" value="{{ projeto.data_fim.isoformat() if projeto and projeto.data_fim else '' }}">
+        </div>
+        <div class="full">
+          <label class="form-label">Progresso: <span id="prog-val">{{ projeto.progresso if projeto else 0 }}%</span></label>
+          <input type="range" name="progresso" min="0" max="100" value="{{ projeto.progresso if projeto else 0 }}"
+                 oninput="document.getElementById('prog-val').textContent=this.value+'%'" style="width:100%">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">{{ 'Salvar alterações' if projeto else 'Criar projeto' }}</button>
+        <a href="{{ url_for('admin_projetos') }}" class="btn btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  {% if projeto %}
+  <div>
+    <div class="card">
+      <h2 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem">Adicionar atualização</h2>
+      <form method="post">
+        <input type="hidden" name="action" value="update">
+        <textarea class="form-textarea" name="update_texto" style="height:100px" placeholder="Descreva o progresso ou mudança..." required></textarea>
+        <button type="submit" class="btn btn-green" style="margin-top:.8rem">+ Adicionar</button>
+      </form>
+    </div>
+
+    {% if updates %}
+    <div class="card" style="margin-top:1rem">
+      <h2 style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.8rem">Histórico</h2>
+      {% for u in updates %}
+      <div class="update-item">
+        <div>{{ u.texto }}</div>
+        <div class="update-meta">{{ u.criado_em.strftime('%d/%m/%Y %H:%M') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'eventos' %}
+{% block title %}{{ 'Editar' if evento else 'Novo' }} Evento{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Editar Evento' if evento else 'Novo Evento' }}</h1>
+</div>
+<div class="card" style="max-width:860px">
+  <form method="post">
+    <div class="form-grid">
+      <div class="full">
+        <label class="form-label">Título *</label>
+        <input class="form-input" type="text" name="titulo" value="{{ evento.titulo if evento else '' }}" required maxlength="255">
+      </div>
+      <div class="full">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-textarea" name="descricao" style="height:130px">{{ evento.descricao if evento else '' }}</textarea>
+      </div>
+      <div class="full">
+        <label class="form-label">Local / Endereço</label>
+        <input class="form-input" type="text" name="local" value="{{ evento.local if evento else '' }}" maxlength="255">
+      </div>
+      <div class="section-sep">Datas e Horários</div>
+      <div>
+        <label class="form-label">Data de Início *</label>
+        <input class="form-input" type="date" name="data_inicio" value="{{ evento.data_inicio.isoformat() if evento and evento.data_inicio else '' }}" required>
+      </div>
+      <div>
+        <label class="form-label">Data de Fim</label>
+        <input class="form-input" type="date" name="data_fim" value="{{ evento.data_fim.isoformat() if evento and evento.data_fim else '' }}">
+      </div>
+      <div>
+        <label class="form-label">Hora de Início</label>
+        <input class="form-input" type="time" name="hora_inicio" value="{{ evento.hora_inicio.strftime('%H:%M') if evento and evento.hora_inicio else '' }}">
+      </div>
+      <div>
+        <label class="form-label">Hora de Fim</label>
+        <input class="form-input" type="time" name="hora_fim" value="{{ evento.hora_fim.strftime('%H:%M') if evento and evento.hora_fim else '' }}">
+      </div>
+      <div class="section-sep">Aparência</div>
+      <div class="full">
+        <label class="form-label">Cor do Evento</label>
+        <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem">
+          <input type="color" id="cor-picker" name="cor" value="{{ evento.cor if evento else '#c0392b' }}" style="width:50px;height:38px;border:1px solid #ddd;border-radius:3px;padding:2px;cursor:pointer">
+          <span style="font-size:.8rem;color:#aaa">ou escolha abaixo</span>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          {% for cor in ['#c0392b','#2980b9','#27ae60','#8e44ad','#e67e22','#16a085','#2c3e50','#f39c12'] %}
+          <div onclick="document.getElementById('cor-picker').value='{{ cor }}'"
+               style="width:28px;height:28px;border-radius:50%;background:{{ cor }};cursor:pointer;border:3px solid #fff;box-shadow:0 0 0 1px #ccc"></div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="full">
+        <label class="check-label">
+          <input type="checkbox" name="publicado" {{ 'checked' if not evento or evento.publicado }}>
+          Publicar no calendário
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">{{ 'Salvar alterações' if evento else 'Criar evento' }}</button>
+      <a href="{{ url_for('admin_eventos') }}" class="btn btn-outline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

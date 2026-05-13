@@ -1,0 +1,868 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from secretaria_manager import SecretariaManager
+import psycopg2
+import psycopg2.extras
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from datetime import datetime
+from functools import wraps
+
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'chave-secreta-troque-em-producao')
+
+DB_CONFIG = {
+    'host':     os.environ.get('DB_HOST', 'localhost'),
+    'port':     os.environ.get('DB_PORT', '5432'),
+    'database': os.environ.get('DB_NAME', 'newsdb'),
+    'user':     os.environ.get('DB_USER', 'postgres'),
+    'password': os.environ.get('DB_PASSWORD', 'postgres'),
+}
+
+ADMIN_USER  = os.environ.get('ADMIN_USER', 'admin')
+ADMIN_PASS  = os.environ.get('ADMIN_PASS', 'admin123')
+
+SMTP_HOST   = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT   = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_USER   = os.environ.get('SMTP_USER', '')
+SMTP_PASS   = os.environ.get('SMTP_PASS', '')
+SMTP_FROM   = os.environ.get('SMTP_FROM', SMTP_USER)
+
+# ── SecretariaManager ────────────────────────────────────────────────────────
+_sec_mgr: SecretariaManager | None = None
+
+def get_sec_mgr() -> SecretariaManager:
+    global _sec_mgr
+    if _sec_mgr is None:
+        _sec_mgr = SecretariaManager(DB_CONFIG)
+    return _sec_mgr
+
+SECRETARIAS = [
+    'Gestão', 'Administração', 'Educação', 'Saúde', 'Obras', 'Finanças',
+    'Meio Ambiente', 'Cultura', 'Esportes', 'Assistência Social', 'Planejamento',
+]
+
+STATUS_PROJETO = ['Planejamento', 'Em andamento', 'Concluído', 'Suspenso', 'Cancelado']
+
+
+def get_db():
+    return psycopg2.connect(**DB_CONFIG)
+
+
+def init_db():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Notícias
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS noticias (
+                    id            SERIAL PRIMARY KEY,
+                    titulo        VARCHAR(255) NOT NULL,
+                    subtitulo     VARCHAR(500),
+                    conteudo      TEXT NOT NULL,
+                    categoria     VARCHAR(100) DEFAULT 'Geral',
+                    autor         VARCHAR(100) DEFAULT 'Redação',
+                    publicado     BOOLEAN DEFAULT TRUE,
+                    criado_em     TIMESTAMP DEFAULT NOW(),
+                    atualizado_em TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            # Eventos
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS eventos (
+                    id          SERIAL PRIMARY KEY,
+                    titulo      VARCHAR(255) NOT NULL,
+                    descricao   TEXT,
+                    local       VARCHAR(255),
+                    cor         VARCHAR(20) DEFAULT '#c0392b',
+                    data_inicio DATE NOT NULL,
+                    data_fim    DATE,
+                    hora_inicio TIME,
+                    hora_fim    TIME,
+                    publicado   BOOLEAN DEFAULT TRUE,
+                    criado_em   TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            # Membros
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS membros (
+                    id         SERIAL PRIMARY KEY,
+                    nome       VARCHAR(255) NOT NULL,
+                    email      VARCHAR(255) NOT NULL UNIQUE,
+                    secretaria VARCHAR(100) NOT NULL,
+                    cargo      VARCHAR(150),
+                    ativo      BOOLEAN DEFAULT TRUE,
+                    criado_em  TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            # Projetos
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS projetos (
+                    id          SERIAL PRIMARY KEY,
+                    titulo      VARCHAR(255) NOT NULL,
+                    descricao   TEXT,
+                    secretaria  VARCHAR(100) NOT NULL,
+                    status      VARCHAR(50) DEFAULT 'Planejamento',
+                    responsavel VARCHAR(150),
+                    orcamento   NUMERIC(15,2),
+                    data_inicio DATE,
+                    data_fim    DATE,
+                    progresso   INTEGER DEFAULT 0,
+                    criado_em   TIMESTAMP DEFAULT NOW(),
+                    atualizado_em TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            # Atualizações de projetos
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS projeto_updates (
+                    id         SERIAL PRIMARY KEY,
+                    projeto_id INTEGER REFERENCES projetos(id) ON DELETE CASCADE,
+                    texto      TEXT NOT NULL,
+                    autor      VARCHAR(150) DEFAULT 'Admin',
+                    criado_em  TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            # Log de e-mails enviados
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS email_log (
+                    id           SERIAL PRIMARY KEY,
+                    assunto      VARCHAR(255),
+                    destinatarios TEXT,
+                    secretaria   VARCHAR(100),
+                    enviado_em   TIMESTAMP DEFAULT NOW(),
+                    sucesso      BOOLEAN DEFAULT TRUE,
+                    erro         TEXT
+                );
+            """)
+            # ── Seed inicial ──────────────────────────────────────────
+            cur.execute("SELECT COUNT(*) FROM noticias;")
+            if cur.fetchone()[0] == 0:
+                cur.execute("""
+                    INSERT INTO noticias (titulo, subtitulo, conteudo, categoria, autor)
+                    VALUES (
+                        'Bem-vindo ao Nexo News',
+                        'Portal oficial de comunicação governamental',
+                        'Este é o portal de notícias do Nexo News Governamental.\n\nAcesse o painel administrativo para publicar notícias, gerenciar projetos e enviar comunicados.',
+                        'Institucional', 'Redação'
+                    );
+                """)
+            cur.execute("SELECT COUNT(*) FROM membros;")
+            if cur.fetchone()[0] == 0:
+                cur.executemany("""
+                    INSERT INTO membros (nome, email, secretaria, cargo, ativo)
+                    VALUES (%s,%s,%s,%s,%s);
+                """, [
+                    ('Ana Paula Rocha',    'ana.rocha@gestao.gov.br',    'Gestão', 'Secretária de Gestão', True),
+                    ('Carlos Mendes',      'carlos.mendes@gestao.gov.br', 'Gestão', 'Coordenador de TI',    True),
+                    ('Beatriz Souza',      'beatriz.souza@gestao.gov.br', 'Gestão', 'Analista de Projetos', True),
+                    ('Rafael Oliveira',    'rafael.oliveira@gestao.gov.br','Gestão', 'Assistente Administrativo', True),
+                ])
+            cur.execute("SELECT COUNT(*) FROM projetos;")
+            if cur.fetchone()[0] == 0:
+                cur.executemany("""
+                    INSERT INTO projetos (titulo, descricao, secretaria, status, responsavel, orcamento, data_inicio, data_fim, progresso)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);
+                """, [
+                    ('Modernização do Sistema de RH',
+                     'Implantação de novo sistema integrado de gestão de recursos humanos, incluindo módulos de folha de pagamento, ponto eletrônico e avaliação de desempenho.',
+                     'Gestão','Em andamento','Carlos Mendes',250000,'2025-01-10','2025-08-31',62),
+                    ('Portal de Transparência',
+                     'Desenvolvimento e publicação do novo portal de transparência com dados abertos, contratos, licitações e despesas em tempo real.',
+                     'Gestão','Em andamento','Beatriz Souza',80000,'2025-02-01','2025-06-30',78),
+                    ('Capacitação de Servidores 2025',
+                     'Programa anual de treinamento e qualificação dos servidores públicos municipais, com cursos presenciais e EAD.',
+                     'Gestão','Planejamento','Ana Paula Rocha',45000,'2025-05-01','2025-12-15',10),
+                    ('Digitalização de Documentos',
+                     'Digitalização e indexação do acervo documental da secretaria, abrangendo 12 anos de registros físicos.',
+                     'Gestão','Concluído','Rafael Oliveira',32000,'2024-06-01','2025-01-31',100),
+                ])
+        conn.commit()
+
+
+@app.context_processor
+def inject_globals():
+    categorias = []
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT DISTINCT categoria FROM noticias WHERE publicado=TRUE ORDER BY categoria;")
+                categorias = [r[0] for r in cur.fetchall()]
+    except Exception:
+        pass
+    return {
+        'now': datetime.now(),
+        'categorias': categorias,
+        'categoria_ativa': request.args.get('categoria', ''),
+        'busca': request.args.get('q', ''),
+    }
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def enviar_email(destinatarios, assunto, html, secretaria=''):
+    """Envia e-mail via SMTP. Retorna (sucesso, erro)."""
+    if not SMTP_USER or not SMTP_PASS:
+        return False, 'SMTP não configurado (defina SMTP_USER e SMTP_PASS)'
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = assunto
+        msg['From']    = SMTP_FROM
+        msg['To']      = ', '.join(destinatarios)
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as srv:
+            srv.ehlo()
+            srv.starttls()
+            srv.login(SMTP_USER, SMTP_PASS)
+            srv.sendmail(SMTP_FROM, destinatarios, msg.as_string())
+
+        # Log
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso) VALUES (%s,%s,%s,TRUE);",
+                    (assunto, ', '.join(destinatarios), secretaria))
+            conn.commit()
+        return True, None
+    except Exception as e:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso,erro) VALUES (%s,%s,%s,FALSE,%s);",
+                    (assunto, ', '.join(destinatarios), secretaria, str(e)))
+            conn.commit()
+        return False, str(e)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PÚBLICAS — NOTÍCIAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/')
+def index():
+    categoria = request.args.get('categoria', '')
+    busca     = request.args.get('q', '')
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            query  = "SELECT * FROM noticias WHERE publicado=TRUE"
+            params = []
+            if categoria:
+                query += " AND categoria=%s"; params.append(categoria)
+            if busca:
+                query += " AND (titulo ILIKE %s OR conteudo ILIKE %s)"; params += [f'%{busca}%']*2
+            query += " ORDER BY criado_em DESC;"
+            cur.execute(query, params)
+            noticias = cur.fetchall()
+    return render_template('index.html', noticias=noticias)
+
+
+@app.route('/noticia/<int:id>')
+def noticia(id):
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM noticias WHERE id=%s AND publicado=TRUE;", (id,))
+            noticia = cur.fetchone()
+            if not noticia:
+                return render_template('404.html'), 404
+            cur.execute("SELECT id,titulo,criado_em FROM noticias WHERE publicado=TRUE AND id<>%s AND categoria=%s ORDER BY criado_em DESC LIMIT 3;",
+                        (id, noticia['categoria']))
+            relacionadas = cur.fetchall()
+    return render_template('noticia.html', noticia=noticia, relacionadas=relacionadas)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PÚBLICAS — CALENDÁRIO
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/calendario')
+def calendario():
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM eventos WHERE publicado=TRUE ORDER BY data_inicio ASC;")
+            eventos = cur.fetchall()
+    eventos_json = [{
+        'id': e['id'], 'title': e['titulo'],
+        'start': e['data_inicio'].isoformat(),
+        'end': e['data_fim'].isoformat() if e['data_fim'] else e['data_inicio'].isoformat(),
+        'color': e['cor'],
+        'extendedProps': {
+            'descricao': e['descricao'] or '',
+            'local': e['local'] or '',
+            'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
+            'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
+        }
+    } for e in eventos]
+    return render_template('calendario.html', eventos_json=eventos_json)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PÚBLICAS — PROJETOS POR SECRETARIA
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/secretarias')
+def secretarias():
+    mgr = get_sec_mgr()
+    resumo = mgr.listar_com_resumo()
+    return render_template('secretarias.html', resumo=resumo)
+
+
+@app.route('/secretarias/<secretaria>')
+def secretaria_detalhe(secretaria):
+    # redireciona para visão geral
+    return redirect(url_for('sec_visao_geral', secretaria=secretaria))
+
+
+@app.route('/projetos/<int:id>')
+def projeto_detalhe(id):
+    mgr = get_sec_mgr()
+    projeto = mgr.projeto_por_id(id)
+    if not projeto:
+        return render_template('404.html'), 404
+    updates = mgr.projeto_updates(id)
+    badge_class = mgr.badge_class
+    progresso_cor = mgr.progresso_cor
+    return render_template('projeto_detalhe.html', projeto=projeto,
+                           updates=updates, badge_class=badge_class,
+                           progresso_cor=progresso_cor)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — AUTH
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_dashboard'))
+    if request.method == 'POST':
+        if request.form['usuario'] == ADMIN_USER and request.form['senha'] == ADMIN_PASS:
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        flash('Usuário ou senha incorretos.', 'error')
+    return render_template('admin/login.html')
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT COUNT(*) as n FROM noticias;")
+            total_noticias = cur.fetchone()['n']
+            cur.execute("SELECT COUNT(*) as n FROM noticias WHERE publicado=TRUE;")
+            publicadas = cur.fetchone()['n']
+            cur.execute("SELECT COUNT(*) as n FROM eventos;")
+            total_eventos = cur.fetchone()['n']
+            cur.execute("SELECT COUNT(*) as n FROM membros WHERE ativo=TRUE;")
+            total_membros = cur.fetchone()['n']
+            cur.execute("SELECT COUNT(*) as n FROM projetos;")
+            total_projetos = cur.fetchone()['n']
+            cur.execute("SELECT * FROM noticias ORDER BY criado_em DESC LIMIT 10;")
+            noticias = cur.fetchall()
+    return render_template('admin/dashboard.html',
+                           noticias=noticias,
+                           total=total_noticias, publicadas=publicadas,
+                           total_eventos=total_eventos,
+                           total_membros=total_membros,
+                           total_projetos=total_projetos)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — NOTÍCIAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/noticias')
+@login_required
+def admin_noticias():
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM noticias ORDER BY criado_em DESC;")
+            noticias = cur.fetchall()
+    return render_template('admin/noticias.html', noticias=noticias)
+
+
+@app.route('/admin/nova', methods=['GET', 'POST'])
+@login_required
+def admin_nova():
+    if request.method == 'POST':
+        titulo    = request.form['titulo'].strip()
+        subtitulo = request.form.get('subtitulo', '').strip()
+        conteudo  = request.form['conteudo'].strip()
+        categoria = request.form.get('categoria', 'Geral').strip()
+        autor     = request.form.get('autor', 'Redação').strip()
+        publicado = 'publicado' in request.form
+        if not titulo or not conteudo:
+            flash('Título e conteúdo são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("INSERT INTO noticias (titulo,subtitulo,conteudo,categoria,autor,publicado) VALUES (%s,%s,%s,%s,%s,%s);",
+                                (titulo, subtitulo, conteudo, categoria, autor, publicado))
+                conn.commit()
+            flash('Notícia publicada!', 'success')
+            return redirect(url_for('admin_noticias'))
+    return render_template('admin/form.html', noticia=None)
+
+
+@app.route('/admin/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def admin_editar(id):
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM noticias WHERE id=%s;", (id,))
+            noticia = cur.fetchone()
+    if not noticia:
+        flash('Notícia não encontrada.', 'error')
+        return redirect(url_for('admin_noticias'))
+    if request.method == 'POST':
+        titulo    = request.form['titulo'].strip()
+        subtitulo = request.form.get('subtitulo', '').strip()
+        conteudo  = request.form['conteudo'].strip()
+        categoria = request.form.get('categoria', 'Geral').strip()
+        autor     = request.form.get('autor', 'Redação').strip()
+        publicado = 'publicado' in request.form
+        if not titulo or not conteudo:
+            flash('Título e conteúdo são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE noticias SET titulo=%s,subtitulo=%s,conteudo=%s,categoria=%s,autor=%s,publicado=%s,atualizado_em=NOW() WHERE id=%s;",
+                                (titulo, subtitulo, conteudo, categoria, autor, publicado, id))
+                conn.commit()
+            flash('Notícia atualizada!', 'success')
+            return redirect(url_for('admin_noticias'))
+    return render_template('admin/form.html', noticia=noticia)
+
+
+@app.route('/admin/excluir/<int:id>', methods=['POST'])
+@login_required
+def admin_excluir(id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM noticias WHERE id=%s;", (id,))
+        conn.commit()
+    flash('Notícia excluída.', 'success')
+    return redirect(url_for('admin_noticias'))
+
+
+@app.route('/admin/toggle/<int:id>', methods=['POST'])
+@login_required
+def admin_toggle(id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE noticias SET publicado = NOT publicado WHERE id=%s;", (id,))
+        conn.commit()
+    return redirect(url_for('admin_noticias'))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — EVENTOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/eventos')
+@login_required
+def admin_eventos():
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM eventos ORDER BY data_inicio DESC;")
+            eventos = cur.fetchall()
+    return render_template('admin/eventos.html', eventos=eventos)
+
+
+@app.route('/admin/eventos/novo', methods=['GET', 'POST'])
+@login_required
+def admin_evento_novo():
+    if request.method == 'POST':
+        titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
+        local=request.form.get('local','').strip(); cor=request.form.get('cor','#c0392b')
+        data_inicio=request.form['data_inicio']
+        data_fim=request.form.get('data_fim') or None
+        hora_inicio=request.form.get('hora_inicio') or None
+        hora_fim=request.form.get('hora_fim') or None
+        publicado='publicado' in request.form
+        if not titulo or not data_inicio:
+            flash('Título e data de início são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("INSERT INTO eventos (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado))
+                conn.commit()
+            flash('Evento criado!', 'success')
+            return redirect(url_for('admin_eventos'))
+    return render_template('admin/evento_form.html', evento=None)
+
+
+@app.route('/admin/eventos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def admin_evento_editar(id):
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM eventos WHERE id=%s;", (id,))
+            evento = cur.fetchone()
+    if not evento:
+        flash('Evento não encontrado.', 'error')
+        return redirect(url_for('admin_eventos'))
+    if request.method == 'POST':
+        titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
+        local=request.form.get('local','').strip(); cor=request.form.get('cor','#c0392b')
+        data_inicio=request.form['data_inicio']
+        data_fim=request.form.get('data_fim') or None
+        hora_inicio=request.form.get('hora_inicio') or None
+        hora_fim=request.form.get('hora_fim') or None
+        publicado='publicado' in request.form
+        if not titulo or not data_inicio:
+            flash('Título e data de início são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE eventos SET titulo=%s,descricao=%s,local=%s,cor=%s,data_inicio=%s,data_fim=%s,hora_inicio=%s,hora_fim=%s,publicado=%s WHERE id=%s;",
+                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado,id))
+                conn.commit()
+            flash('Evento atualizado!', 'success')
+            return redirect(url_for('admin_eventos'))
+    return render_template('admin/evento_form.html', evento=evento)
+
+
+@app.route('/admin/eventos/excluir/<int:id>', methods=['POST'])
+@login_required
+def admin_evento_excluir(id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM eventos WHERE id=%s;", (id,))
+        conn.commit()
+    flash('Evento excluído.', 'success')
+    return redirect(url_for('admin_eventos'))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — MEMBROS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/membros')
+@login_required
+def admin_membros():
+    secretaria = request.args.get('secretaria', '')
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if secretaria:
+                cur.execute("SELECT * FROM membros WHERE secretaria=%s ORDER BY nome;", (secretaria,))
+            else:
+                cur.execute("SELECT * FROM membros ORDER BY secretaria, nome;")
+            membros = cur.fetchall()
+    return render_template('admin/membros.html', membros=membros,
+                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+
+
+@app.route('/admin/membros/novo', methods=['GET', 'POST'])
+@login_required
+def admin_membro_novo():
+    if request.method == 'POST':
+        nome       = request.form['nome'].strip()
+        email      = request.form['email'].strip().lower()
+        secretaria = request.form['secretaria'].strip()
+        cargo      = request.form.get('cargo', '').strip()
+        ativo      = 'ativo' in request.form
+        if not nome or not email or not secretaria:
+            flash('Nome, e-mail e secretaria são obrigatórios.', 'error')
+        else:
+            try:
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("INSERT INTO membros (nome,email,secretaria,cargo,ativo) VALUES (%s,%s,%s,%s,%s);",
+                                    (nome, email, secretaria, cargo, ativo))
+                    conn.commit()
+                flash('Membro cadastrado!', 'success')
+                return redirect(url_for('admin_membros'))
+            except psycopg2.errors.UniqueViolation:
+                flash('E-mail já cadastrado.', 'error')
+    return render_template('admin/membro_form.html', membro=None, secretarias=SECRETARIAS)
+
+
+@app.route('/admin/membros/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def admin_membro_editar(id):
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM membros WHERE id=%s;", (id,))
+            membro = cur.fetchone()
+    if not membro:
+        flash('Membro não encontrado.', 'error')
+        return redirect(url_for('admin_membros'))
+    if request.method == 'POST':
+        nome       = request.form['nome'].strip()
+        email      = request.form['email'].strip().lower()
+        secretaria = request.form['secretaria'].strip()
+        cargo      = request.form.get('cargo', '').strip()
+        ativo      = 'ativo' in request.form
+        try:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE membros SET nome=%s,email=%s,secretaria=%s,cargo=%s,ativo=%s WHERE id=%s;",
+                                (nome, email, secretaria, cargo, ativo, id))
+                conn.commit()
+            flash('Membro atualizado!', 'success')
+            return redirect(url_for('admin_membros'))
+        except psycopg2.errors.UniqueViolation:
+            flash('E-mail já cadastrado por outro membro.', 'error')
+    return render_template('admin/membro_form.html', membro=membro, secretarias=SECRETARIAS)
+
+
+@app.route('/admin/membros/excluir/<int:id>', methods=['POST'])
+@login_required
+def admin_membro_excluir(id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM membros WHERE id=%s;", (id,))
+        conn.commit()
+    flash('Membro removido.', 'success')
+    return redirect(url_for('admin_membros'))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — E-MAIL
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/email', methods=['GET', 'POST'])
+@login_required
+def admin_email():
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT DISTINCT secretaria FROM membros WHERE ativo=TRUE ORDER BY secretaria;")
+            secs_com_membros = [r['secretaria'] for r in cur.fetchall()]
+            cur.execute("SELECT * FROM email_log ORDER BY enviado_em DESC LIMIT 30;")
+            logs = cur.fetchall()
+
+    if request.method == 'POST':
+        assunto    = request.form['assunto'].strip()
+        mensagem   = request.form['mensagem'].strip()
+        secretaria = request.form.get('secretaria', '')  # vazio = todos
+
+        if not assunto or not mensagem:
+            flash('Assunto e mensagem são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    if secretaria:
+                        cur.execute("SELECT email,nome FROM membros WHERE ativo=TRUE AND secretaria=%s;", (secretaria,))
+                    else:
+                        cur.execute("SELECT email,nome FROM membros WHERE ativo=TRUE;")
+                    dest = cur.fetchall()
+
+            if not dest:
+                flash('Nenhum membro ativo encontrado para envio.', 'error')
+            else:
+                emails = [r['email'] for r in dest]
+                html = render_template('email_template.html',
+                                       assunto=assunto, mensagem=mensagem,
+                                       destinatarios=dest, secretaria=secretaria or 'Todos')
+                ok, err = enviar_email(emails, assunto, html, secretaria or 'Todos')
+                if ok:
+                    flash(f'E-mail enviado para {len(emails)} destinatário(s)!', 'success')
+                else:
+                    flash(f'Erro ao enviar: {err}', 'error')
+            return redirect(url_for('admin_email'))
+
+    return render_template('admin/email.html',
+                           secretarias=secs_com_membros, logs=logs,
+                           smtp_ok=bool(SMTP_USER and SMTP_PASS))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — PROJETOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/projetos')
+@login_required
+def admin_projetos():
+    secretaria = request.args.get('secretaria', '')
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if secretaria:
+                cur.execute("SELECT * FROM projetos WHERE secretaria=%s ORDER BY atualizado_em DESC;", (secretaria,))
+            else:
+                cur.execute("SELECT * FROM projetos ORDER BY atualizado_em DESC;")
+            projetos = cur.fetchall()
+    return render_template('admin/projetos.html', projetos=projetos,
+                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+
+
+@app.route('/admin/projetos/novo', methods=['GET', 'POST'])
+@login_required
+def admin_projeto_novo():
+    if request.method == 'POST':
+        titulo      = request.form['titulo'].strip()
+        descricao   = request.form.get('descricao','').strip()
+        secretaria  = request.form['secretaria'].strip()
+        status      = request.form.get('status','Planejamento')
+        responsavel = request.form.get('responsavel','').strip()
+        orcamento   = request.form.get('orcamento') or None
+        data_inicio = request.form.get('data_inicio') or None
+        data_fim    = request.form.get('data_fim') or None
+        progresso   = int(request.form.get('progresso', 0))
+        if not titulo or not secretaria:
+            flash('Título e secretaria são obrigatórios.', 'error')
+        else:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""INSERT INTO projetos
+                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);""",
+                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso))
+                conn.commit()
+            flash('Projeto criado!', 'success')
+            return redirect(url_for('admin_projetos'))
+    return render_template('admin/projeto_form.html', projeto=None,
+                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+
+
+@app.route('/admin/projetos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def admin_projeto_editar(id):
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM projetos WHERE id=%s;", (id,))
+            projeto = cur.fetchone()
+            cur.execute("SELECT * FROM projeto_updates WHERE projeto_id=%s ORDER BY criado_em DESC;", (id,))
+            updates = cur.fetchall()
+    if not projeto:
+        flash('Projeto não encontrado.', 'error')
+        return redirect(url_for('admin_projetos'))
+    if request.method == 'POST':
+        action = request.form.get('action','save')
+        if action == 'update':
+            texto = request.form.get('update_texto','').strip()
+            if texto:
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("INSERT INTO projeto_updates (projeto_id,texto) VALUES (%s,%s);", (id, texto))
+                        cur.execute("UPDATE projetos SET atualizado_em=NOW() WHERE id=%s;", (id,))
+                    conn.commit()
+                flash('Atualização adicionada!', 'success')
+        else:
+            titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
+            secretaria=request.form['secretaria'].strip(); status=request.form.get('status','Planejamento')
+            responsavel=request.form.get('responsavel','').strip()
+            orcamento=request.form.get('orcamento') or None
+            data_inicio=request.form.get('data_inicio') or None
+            data_fim=request.form.get('data_fim') or None
+            progresso=int(request.form.get('progresso',0))
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""UPDATE projetos SET titulo=%s,descricao=%s,secretaria=%s,status=%s,
+                        responsavel=%s,orcamento=%s,data_inicio=%s,data_fim=%s,progresso=%s,atualizado_em=NOW()
+                        WHERE id=%s;""",
+                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso,id))
+                conn.commit()
+            flash('Projeto atualizado!', 'success')
+        return redirect(url_for('admin_projeto_editar', id=id))
+    return render_template('admin/projeto_form.html', projeto=projeto, updates=updates,
+                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+
+
+@app.route('/admin/projetos/excluir/<int:id>', methods=['POST'])
+@login_required
+def admin_projeto_excluir(id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM projetos WHERE id=%s;", (id,))
+        conn.commit()
+    flash('Projeto excluído.', 'success')
+    return redirect(url_for('admin_projetos'))
+
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5000,
+            debug=os.environ.get('FLASK_DEBUG','false').lower()=='true')
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PÚBLICAS — SECRETARIA (sub-páginas via SecretariaManager)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/secretarias/<secretaria>/visao-geral')
+def sec_visao_geral(secretaria):
+    mgr = get_sec_mgr()
+    return render_template('sec_visao_geral.html',
+        secretaria=secretaria,
+        stats=mgr.stats(secretaria),
+        projetos_ativos=mgr.projetos_ativos(secretaria),
+        updates_recentes=mgr.updates_recentes(secretaria),
+        badge_class=mgr.badge_class,
+        progresso_cor=mgr.progresso_cor,
+    )
+
+
+@app.route('/secretarias/<secretaria>/projetos')
+def sec_projetos(secretaria):
+    mgr = get_sec_mgr()
+    status_filtro = request.args.get('status', '')
+    return render_template('sec_projetos.html',
+        secretaria=secretaria,
+        projetos=mgr.projetos(secretaria, status_filtro),
+        status_filtro=status_filtro,
+        status_list=STATUS_PROJETO,
+        badge_class=mgr.badge_class,
+        progresso_cor=mgr.progresso_cor,
+    )
+
+
+@app.route('/secretarias/<secretaria>/membros')
+def sec_membros(secretaria):
+    mgr = get_sec_mgr()
+    return render_template('sec_membros.html',
+        secretaria=secretaria,
+        membros=mgr.membros(secretaria),
+        iniciais=mgr.iniciais,
+    )
+
+
+@app.route('/secretarias/<secretaria>/publicacoes')
+def sec_publicacoes(secretaria):
+    mgr = get_sec_mgr()
+    return render_template('sec_publicacoes.html',
+        secretaria=secretaria,
+        noticias=mgr.publicacoes(secretaria),
+    )
+
+
+@app.route('/secretarias/<secretaria>/eventos')
+def sec_eventos(secretaria):
+    mgr = get_sec_mgr()
+    eventos_json = []
+    for e in mgr.todos_eventos():
+        eventos_json.append({
+            'id': e['id'], 'title': e['titulo'],
+            'start': e['data_inicio'].isoformat(),
+            'end': e['data_fim'].isoformat() if e['data_fim'] else e['data_inicio'].isoformat(),
+            'color': e['cor'],
+            'extendedProps': {
+                'descricao': e['descricao'] or '',
+                'local': e['local'] or '',
+                'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
+                'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
+            }
+        })
+    proximos = mgr.eventos_proximos(limit=6)
+    return render_template('sec_eventos.html',
+        secretaria=secretaria,
+        eventos_json=eventos_json,
+        proximos=proximos,
+    )

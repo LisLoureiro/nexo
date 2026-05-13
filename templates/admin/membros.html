@@ -1,0 +1,45 @@
+{% extends 'admin/_base.html' %}
+{% set active = 'membros' %}
+{% block title %}Membros{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Membros</h1>
+  <a href="{{ url_for('admin_membro_novo') }}" class="btn">+ Novo Membro</a>
+</div>
+
+<div style="margin-bottom:1.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+  <a href="{{ url_for('admin_membros') }}" class="btn btn-sm {% if not secretaria_filtro %}btn-green{% else %}btn-outline{% endif %}">Todos</a>
+  {% for s in secretarias %}
+  <a href="{{ url_for('admin_membros', secretaria=s) }}"
+     class="btn btn-sm {% if secretaria_filtro==s %}btn-green{% else %}btn-outline{% endif %}">{{ s }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Secretaria</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>
+      {% for m in membros %}
+      <tr>
+        <td>{{ m.id }}</td>
+        <td><strong>{{ m.nome }}</strong></td>
+        <td>{{ m.email }}</td>
+        <td>{{ m.secretaria }}</td>
+        <td>{{ m.cargo or '—' }}</td>
+        <td><span class="badge {{ 'ativo' if m.ativo else 'inativo' }}">{{ 'Ativo' if m.ativo else 'Inativo' }}</span></td>
+        <td>
+          <div class="acoes">
+            <a href="{{ url_for('admin_membro_editar', id=m.id) }}" class="btn btn-sm btn-outline">Editar</a>
+            <form method="post" action="{{ url_for('admin_membro_excluir', id=m.id) }}" style="display:inline" onsubmit="return confirm('Remover membro?')">
+              <button class="btn btn-sm btn-gray">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem">Nenhum membro cadastrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
