@@ -3,14 +3,26 @@ from secretaria_manager import SecretariaManager
 import psycopg2
 import psycopg2.extras
 import os
+import uuid
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 from functools import wraps
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'chave-secreta-troque-em-producao')
+
+# ── Upload de imagens ─────────────────────────────────────────────────────────
+UPLOAD_FOLDER   = os.path.join('static', 'uploads', 'noticias')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 DB_CONFIG = {
     'host':     os.environ.get('DB_HOST', 'localhost'),
@@ -38,12 +50,69 @@ def get_sec_mgr() -> SecretariaManager:
         _sec_mgr = SecretariaManager(DB_CONFIG)
     return _sec_mgr
 
-SECRETARIAS = [
+SECRETARIAS_DEFAULT = [
     'Gestão', 'Administração', 'Educação', 'Saúde', 'Obras', 'Finanças',
     'Meio Ambiente', 'Cultura', 'Esportes', 'Assistência Social', 'Planejamento',
 ]
 
 STATUS_PROJETO = ['Planejamento', 'Em andamento', 'Concluído', 'Suspenso', 'Cancelado']
+
+
+def get_secretarias_lista():
+    """Retorna a lista de secretarias cadastradas no banco."""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT nome FROM secretarias ORDER BY nome;")
+                rows = cur.fetchall()
+                return [r[0] for r in rows]
+    except Exception:
+        return list(SECRETARIAS_DEFAULT)
+
+
+def migrate_db():
+    """Aplica migrações incrementais — seguro de rodar várias vezes."""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Colunas de imagem nas notícias
+                cur.execute("""
+                    ALTER TABLE noticias
+                        ADD COLUMN IF NOT EXISTS imagem_url     VARCHAR(500),
+                        ADD COLUMN IF NOT EXISTS imagem_legenda VARCHAR(300);
+                """)
+                # URL nos eventos
+                cur.execute("""
+                    ALTER TABLE eventos
+                        ADD COLUMN IF NOT EXISTS url VARCHAR(500);
+                """)
+                # Tabela de secretarias gerenciáveis
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS secretarias (
+                        id        SERIAL PRIMARY KEY,
+                        nome      VARCHAR(150) NOT NULL UNIQUE,
+                        criado_em TIMESTAMP DEFAULT NOW()
+                    );
+                """)
+                # Seed das secretarias padrão
+                for s in SECRETARIAS_DEFAULT:
+                    cur.execute("""
+                        INSERT INTO secretarias (nome) VALUES (%s)
+                        ON CONFLICT (nome) DO NOTHING;
+                    """, (s,))
+            conn.commit()
+    except Exception as e:
+        print(f"[migrate_db] aviso: {e}")
+
+
+_migrated = False
+
+@app.before_request
+def run_migrations_once():
+    global _migrated
+    if not _migrated:
+        migrate_db()
+        _migrated = True
 
 
 def get_db():
@@ -63,6 +132,8 @@ def init_db():
                     categoria     VARCHAR(100) DEFAULT 'Geral',
                     autor         VARCHAR(100) DEFAULT 'Redação',
                     publicado     BOOLEAN DEFAULT TRUE,
+                    imagem_url    VARCHAR(500),
+                    imagem_legenda VARCHAR(300),
                     criado_em     TIMESTAMP DEFAULT NOW(),
                     atualizado_em TIMESTAMP DEFAULT NOW()
                 );
@@ -75,6 +146,7 @@ def init_db():
                     descricao   TEXT,
                     local       VARCHAR(255),
                     cor         VARCHAR(20) DEFAULT '#c0392b',
+                    url         VARCHAR(500),
                     data_inicio DATE NOT NULL,
                     data_fim    DATE,
                     hora_inicio TIME,
@@ -297,6 +369,7 @@ def calendario():
             'local': e['local'] or '',
             'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
             'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
+            'url':         e['url'] or '',
         }
     } for e in eventos]
     return render_template('calendario.html', eventos_json=eventos_json)
@@ -408,13 +481,23 @@ def admin_nova():
         categoria = request.form.get('categoria', 'Geral').strip()
         autor     = request.form.get('autor', 'Redação').strip()
         publicado = 'publicado' in request.form
+        imagem_url     = None
+        imagem_legenda = request.form.get('imagem_legenda', '').strip()
+        # Upload de imagem
+        file = request.files.get('imagem')
+        if file and file.filename and allowed_file(file.filename):
+            ext      = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            imagem_url = url_for('static', filename=f'uploads/noticias/{filename}')
         if not titulo or not conteudo:
             flash('Título e conteúdo são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("INSERT INTO noticias (titulo,subtitulo,conteudo,categoria,autor,publicado) VALUES (%s,%s,%s,%s,%s,%s);",
-                                (titulo, subtitulo, conteudo, categoria, autor, publicado))
+                    cur.execute(
+                        "INSERT INTO noticias (titulo,subtitulo,conteudo,categoria,autor,publicado,imagem_url,imagem_legenda) VALUES (%s,%s,%s,%s,%s,%s,%s,%s);",
+                        (titulo, subtitulo, conteudo, categoria, autor, publicado, imagem_url, imagem_legenda))
                 conn.commit()
             flash('Notícia publicada!', 'success')
             return redirect(url_for('admin_noticias'))
@@ -438,13 +521,32 @@ def admin_editar(id):
         categoria = request.form.get('categoria', 'Geral').strip()
         autor     = request.form.get('autor', 'Redação').strip()
         publicado = 'publicado' in request.form
+        imagem_legenda = request.form.get('imagem_legenda', '').strip()
+        imagem_url = noticia['imagem_url']
+        # Remover imagem existente
+        if 'remover_imagem' in request.form and imagem_url:
+            try:
+                old_path = os.path.join('static', imagem_url.split('/static/')[-1])
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            except Exception:
+                pass
+            imagem_url = None
+        # Nova imagem
+        file = request.files.get('imagem')
+        if file and file.filename and allowed_file(file.filename):
+            ext      = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            imagem_url = url_for('static', filename=f'uploads/noticias/{filename}')
         if not titulo or not conteudo:
             flash('Título e conteúdo são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("UPDATE noticias SET titulo=%s,subtitulo=%s,conteudo=%s,categoria=%s,autor=%s,publicado=%s,atualizado_em=NOW() WHERE id=%s;",
-                                (titulo, subtitulo, conteudo, categoria, autor, publicado, id))
+                    cur.execute(
+                        "UPDATE noticias SET titulo=%s,subtitulo=%s,conteudo=%s,categoria=%s,autor=%s,publicado=%s,imagem_url=%s,imagem_legenda=%s,atualizado_em=NOW() WHERE id=%s;",
+                        (titulo, subtitulo, conteudo, categoria, autor, publicado, imagem_url, imagem_legenda, id))
                 conn.commit()
             flash('Notícia atualizada!', 'success')
             return redirect(url_for('admin_noticias'))
@@ -492,6 +594,7 @@ def admin_evento_novo():
     if request.method == 'POST':
         titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
         local=request.form.get('local','').strip(); cor=request.form.get('cor','#c0392b')
+        url=request.form.get('url','').strip()
         data_inicio=request.form['data_inicio']
         data_fim=request.form.get('data_fim') or None
         hora_inicio=request.form.get('hora_inicio') or None
@@ -502,8 +605,8 @@ def admin_evento_novo():
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("INSERT INTO eventos (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);",
-                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado))
+                    cur.execute("INSERT INTO eventos (titulo,descricao,local,cor,url,data_inicio,data_fim,hora_inicio,hora_fim,publicado) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+                                (titulo,descricao,local,cor,url,data_inicio,data_fim,hora_inicio,hora_fim,publicado))
                 conn.commit()
             flash('Evento criado!', 'success')
             return redirect(url_for('admin_eventos'))
@@ -523,6 +626,7 @@ def admin_evento_editar(id):
     if request.method == 'POST':
         titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
         local=request.form.get('local','').strip(); cor=request.form.get('cor','#c0392b')
+        url=request.form.get('url','').strip()
         data_inicio=request.form['data_inicio']
         data_fim=request.form.get('data_fim') or None
         hora_inicio=request.form.get('hora_inicio') or None
@@ -533,8 +637,8 @@ def admin_evento_editar(id):
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("UPDATE eventos SET titulo=%s,descricao=%s,local=%s,cor=%s,data_inicio=%s,data_fim=%s,hora_inicio=%s,hora_fim=%s,publicado=%s WHERE id=%s;",
-                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado,id))
+                    cur.execute("UPDATE eventos SET titulo=%s,descricao=%s,local=%s,cor=%s,url=%s,data_inicio=%s,data_fim=%s,hora_inicio=%s,hora_fim=%s,publicado=%s WHERE id=%s;",
+                                (titulo,descricao,local,cor,url,data_inicio,data_fim,hora_inicio,hora_fim,publicado,id))
                 conn.commit()
             flash('Evento atualizado!', 'success')
             return redirect(url_for('admin_eventos'))
@@ -568,7 +672,7 @@ def admin_membros():
                 cur.execute("SELECT * FROM membros ORDER BY secretaria, nome;")
             membros = cur.fetchall()
     return render_template('admin/membros.html', membros=membros,
-                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria)
 
 
 @app.route('/admin/membros/novo', methods=['GET', 'POST'])
@@ -593,7 +697,7 @@ def admin_membro_novo():
                 return redirect(url_for('admin_membros'))
             except psycopg2.errors.UniqueViolation:
                 flash('E-mail já cadastrado.', 'error')
-    return render_template('admin/membro_form.html', membro=None, secretarias=SECRETARIAS)
+    return render_template('admin/membro_form.html', membro=None, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/membros/editar/<int:id>', methods=['GET', 'POST'])
@@ -622,7 +726,7 @@ def admin_membro_editar(id):
             return redirect(url_for('admin_membros'))
         except psycopg2.errors.UniqueViolation:
             flash('E-mail já cadastrado por outro membro.', 'error')
-    return render_template('admin/membro_form.html', membro=membro, secretarias=SECRETARIAS)
+    return render_template('admin/membro_form.html', membro=membro, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/membros/excluir/<int:id>', methods=['POST'])
@@ -701,7 +805,7 @@ def admin_projetos():
                 cur.execute("SELECT * FROM projetos ORDER BY atualizado_em DESC;")
             projetos = cur.fetchall()
     return render_template('admin/projetos.html', projetos=projetos,
-                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria)
 
 
 @app.route('/admin/projetos/novo', methods=['GET', 'POST'])
@@ -730,7 +834,7 @@ def admin_projeto_novo():
             flash('Projeto criado!', 'success')
             return redirect(url_for('admin_projetos'))
     return render_template('admin/projeto_form.html', projeto=None,
-                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+                           secretarias=get_secretarias_lista(), status_list=STATUS_PROJETO)
 
 
 @app.route('/admin/projetos/editar/<int:id>', methods=['GET', 'POST'])
@@ -774,7 +878,7 @@ def admin_projeto_editar(id):
             flash('Projeto atualizado!', 'success')
         return redirect(url_for('admin_projeto_editar', id=id))
     return render_template('admin/projeto_form.html', projeto=projeto, updates=updates,
-                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+                           secretarias=get_secretarias_lista(), status_list=STATUS_PROJETO)
 
 
 @app.route('/admin/projetos/excluir/<int:id>', methods=['POST'])
@@ -853,6 +957,7 @@ def sec_eventos(secretaria):
                 'local': e['local'] or '',
                 'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
                 'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
+                'url':         e['url'] or '',
             }
         })
     proximos = mgr.eventos_proximos(limit=6)
@@ -861,6 +966,51 @@ def sec_eventos(secretaria):
         eventos_json=eventos_json,
         proximos=proximos,
     )
+
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN — SECRETARIAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/admin/secretarias', methods=['GET', 'POST'])
+@login_required
+def admin_secretarias():
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+        if action == 'criar':
+            nome = request.form.get('nome', '').strip()
+            if not nome:
+                flash('Informe o nome da secretaria.', 'error')
+            else:
+                try:
+                    with get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("INSERT INTO secretarias (nome) VALUES (%s);", (nome,))
+                        conn.commit()
+                    flash(f'Secretaria "{nome}" criada!', 'success')
+                except psycopg2.errors.UniqueViolation:
+                    flash('Já existe uma secretaria com esse nome.', 'error')
+        elif action == 'excluir':
+            sid = request.form.get('id')
+            nome = request.form.get('nome', '')
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM secretarias WHERE id=%s;", (sid,))
+                conn.commit()
+            flash(f'Secretaria "{nome}" removida.', 'success')
+        return redirect(url_for('admin_secretarias'))
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT s.id, s.nome, s.criado_em,
+                    (SELECT COUNT(*) FROM projetos p WHERE p.secretaria=s.nome) AS total_projetos,
+                    (SELECT COUNT(*) FROM membros  m WHERE m.secretaria=s.nome AND m.ativo=TRUE) AS total_membros
+                FROM secretarias s ORDER BY s.nome;
+            """)
+            secretarias = cur.fetchall()
+    return render_template('admin/secretarias.html', secretarias=secretarias)
 
 
 if __name__ == '__main__':

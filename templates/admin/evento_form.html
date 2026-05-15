@@ -54,6 +54,12 @@
                  value="{{ evento.cor if evento else '#4f5de8' }}" style="height:42px;padding:.2rem">
         </div>
       </div>
+      <div class="form-group">
+        <label for="url">Link externo (opcional)</label>
+        <input id="url" name="url" class="form-control" type="url"
+               value="{{ evento.url if evento and evento.url else '' }}"
+               placeholder="https://... — aparece como botão no modal do calendário">
+      </div>
       <div class="form-check" style="margin-bottom:1.2rem">
         <input id="publicado" name="publicado" type="checkbox"
                {% if not evento or evento.publicado %}checked{% endif %}>

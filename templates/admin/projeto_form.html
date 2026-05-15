@@ -6,11 +6,13 @@
 {% endblock %}
 
 {% block extra_styles %}
+<style>
 .form-layout { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
 .update-item { padding:.7rem 0; border-bottom:1px solid var(--paper); font-size:.85rem; }
 .update-item:last-child { border:none; }
 .update-item .meta { font-size:.72rem; color:var(--muted); margin-top:.2rem; }
 @media(max-width:900px){ .form-layout{ grid-template-columns:1fr } }
+</style>
 {% endblock %}
 
 {% block content %}
