@@ -36,6 +36,10 @@ services:
       SMTP_USER: ""
       SMTP_PASS: ""
       SMTP_FROM: ""
+    volumes:
+      # Monta templates e static como volumes — mudanças aparecem sem rebuild
+      - ./templates:/app/templates
+      - ./static:/app/static
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +55,6 @@ services:
       PGADMIN_DEFAULT_PASSWORD: pgadmin123
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-      # Fix para Codespaces/proxy reverso
       PGADMIN_CONFIG_PROXY_X_HOST_COUNT: "1"
       PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT: "1"
     volumes:

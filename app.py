@@ -881,7 +881,7 @@ def get_secretarias_lista():
 # ADMIN — SECRETARIAS
 # ══════════════════════════════════════════════════════════════════════════════
 
-@app.route('/admin/secretarias', methods=['GET', 'POST'])
+@app.route('/admin/gerir-secretarias', methods=['GET', 'POST'])
 @login_required
 def admin_secretarias():
     if request.method == 'POST':
