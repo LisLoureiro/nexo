@@ -36,18 +36,19 @@ class SecretariaManager:
     # ── lista de secretarias cadastradas ──────────────────────────────────────
 
     def listar_com_resumo(self) -> list:
-        """Retorna todas as secretarias que têm projetos, com contadores."""
+        """Retorna TODAS as secretarias cadastradas, com contadores (zerados se sem projetos)."""
         return self._fetch("""
             SELECT
-                secretaria,
-                COUNT(*)                                              AS total_projetos,
-                SUM(CASE WHEN status='Em andamento' THEN 1 ELSE 0 END) AS em_andamento,
-                SUM(CASE WHEN status='Concluído'    THEN 1 ELSE 0 END) AS concluidos,
-                SUM(CASE WHEN status='Planejamento' THEN 1 ELSE 0 END) AS planejamento,
-                ROUND(AVG(progresso))                                  AS progresso_medio
-            FROM projetos
-            GROUP BY secretaria
-            ORDER BY secretaria;
+                s.nome                                                       AS secretaria,
+                COUNT(p.id)                                                  AS total_projetos,
+                SUM(CASE WHEN p.status='Em andamento' THEN 1 ELSE 0 END)    AS em_andamento,
+                SUM(CASE WHEN p.status='Concluído'    THEN 1 ELSE 0 END)    AS concluidos,
+                SUM(CASE WHEN p.status='Planejamento' THEN 1 ELSE 0 END)    AS planejamento,
+                ROUND(AVG(p.progresso))                                      AS progresso_medio
+            FROM secretarias s
+            LEFT JOIN projetos p ON p.secretaria = s.nome
+            GROUP BY s.nome
+            ORDER BY s.nome;
         """)
 
     # ── stats de uma secretaria ────────────────────────────────────────────────
@@ -119,6 +120,14 @@ class SecretariaManager:
             WHERE publicado=TRUE AND (categoria=%s OR categoria ILIKE %s)
             ORDER BY criado_em DESC LIMIT %s;
         """, (secretaria, f'%{secretaria}%', limit))
+
+    def publicacoes_institucionais(self, limit: int = 50) -> list:
+        """Retorna publicações da categoria Institucional."""
+        return self._fetch("""
+            SELECT * FROM noticias
+            WHERE publicado=TRUE AND categoria='Institucional'
+            ORDER BY criado_em DESC LIMIT %s;
+        """, (limit,))
 
     # ── eventos ────────────────────────────────────────────────────────────────
 

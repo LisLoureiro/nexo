@@ -132,7 +132,7 @@
     <div class="sep">Organização</div>
     <a href="{{ url_for('admin_membros') }}"    class="{{ 'active' if request.endpoint in ['admin_membros','admin_membro_novo','admin_membro_editar'] else '' }}">👥 Membros</a>
     <a href="{{ url_for('admin_projetos') }}"   class="{{ 'active' if request.endpoint in ['admin_projetos','admin_projeto_novo','admin_projeto_editar'] else '' }}">🚧 Projetos</a>
-    <a href="{{ url_for('admin_secretarias') }}" class="{{ 'active' if request.endpoint=='admin_secretarias' else '' }}">🏛 Secretarias</a>
+    <a href="{{ url_for('secretarias') }}" class="{{ 'active' if request.endpoint=='secretarias' else '' }}">🏛 Secretarias</a>
     <div class="sep">Comunicação</div>
     <a href="{{ url_for('admin_email') }}"      class="{{ 'active' if request.endpoint=='admin_email' else '' }}">✉️ E-mail</a>
     <div class="sep">Portal</div>

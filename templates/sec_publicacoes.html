@@ -7,9 +7,7 @@
   <p>Notícias e comunicados relacionados à secretaria de {{ secretaria }}</p>
 </div>
 
-{% if not noticias %}
-<div class="vazio">Nenhuma publicação encontrada para esta secretaria.</div>
-{% else %}
+{% if noticias %}
 <div class="pub-grid">
   {% for n in noticias %}
   <a href="{{ url_for('noticia', id=n.id) }}" class="pub-card">
@@ -20,5 +18,24 @@
   </a>
   {% endfor %}
 </div>
+{% else %}
+<div class="vazio">Nenhuma publicação encontrada para esta secretaria.</div>
 {% endif %}
+
+{% if institucionais %}
+<div style="margin-top:2.5rem">
+  <div class="section-title">📋 Publicações Institucionais</div>
+  <div class="pub-grid">
+    {% for n in institucionais %}
+    <a href="{{ url_for('noticia', id=n.id) }}" class="pub-card" style="border-top-color:#1a2e8a">
+      <div class="pub-cat" style="color:#1a2e8a">Institucional</div>
+      <h3>{{ n.titulo }}</h3>
+      <p>{{ n.conteudo[:180] }}…</p>
+      <div class="meta">{{ n.autor }} · {{ n.criado_em.strftime('%d/%m/%Y') }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
