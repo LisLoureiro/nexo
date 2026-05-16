@@ -1030,3 +1030,49 @@ def admin_secretarias():
         secretarias = []
 
     return render_template('admin/secretarias.html', secretarias=secretarias)
+
+
+@app.route('/admin/secretarias', methods=['GET', 'POST'])
+@login_required
+def admin_secretarias():
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+        nome   = request.form.get('nome', '').strip()
+        sid    = request.form.get('id', '')
+        if action == 'criar':
+            if not nome:
+                flash('Informe o nome da secretaria.', 'error')
+            else:
+                try:
+                    with get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("""CREATE TABLE IF NOT EXISTS secretarias (id SERIAL PRIMARY KEY, nome VARCHAR(150) NOT NULL UNIQUE, criado_em TIMESTAMP DEFAULT NOW());""")
+                            cur.execute("INSERT INTO secretarias (nome) VALUES (%s);", (nome,))
+                        conn.commit()
+                    flash(f'Secretaria "{nome}" criada!', 'success')
+                except Exception as e:
+                    flash('Já existe uma secretaria com esse nome.' if 'unique' in str(e).lower() else str(e), 'error')
+        elif action == 'excluir' and sid:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM secretarias WHERE id=%s;", (sid,))
+                conn.commit()
+            flash(f'Secretaria "{nome}" removida.', 'success')
+        return redirect(url_for('admin_secretarias'))
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""CREATE TABLE IF NOT EXISTS secretarias (id SERIAL PRIMARY KEY, nome VARCHAR(150) NOT NULL UNIQUE, criado_em TIMESTAMP DEFAULT NOW());""")
+                cur.execute("SELECT COUNT(*) FROM secretarias;")
+                if cur.fetchone()[0] == 0:
+                    for s in SECRETARIAS:
+                        cur.execute("INSERT INTO secretarias (nome) VALUES (%s) ON CONFLICT (nome) DO NOTHING;", (s,))
+            conn.commit()
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("""SELECT s.id, s.nome, s.criado_em, (SELECT COUNT(*) FROM projetos p WHERE p.secretaria=s.nome) AS total_projetos, (SELECT COUNT(*) FROM membros m WHERE m.secretaria=s.nome AND m.ativo=TRUE) AS total_membros FROM secretarias s ORDER BY s.nome;""")
+                secretarias = cur.fetchall()
+    except Exception as e:
+        flash(f'Erro: {e}', 'error')
+        secretarias = []
+    return render_template('admin/secretarias.html', secretarias=secretarias)
