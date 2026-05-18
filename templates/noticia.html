@@ -3,7 +3,10 @@
 
 {% block extra_styles %}
 .artigo-wrapper { display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem; }
-.artigo header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+
+/* Usa .artigo-header em vez de <header> para não herdar o estilo global do base.html */
+.artigo-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border);
+  background: none; padding-top: 0; color: var(--navy); }
 .artigo .categoria { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); margin-bottom: .8rem; display: inline-block; }
 .artigo h1 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 2.2rem; line-height: 1.2; margin-bottom: .8rem; color: var(--navy); }
 .artigo .subtitulo { font-size: 1.1rem; color: var(--muted); margin-bottom: 1rem; }
@@ -12,28 +15,28 @@
 .artigo .conteudo p { margin-bottom: 1.2rem; color: #1e2a4a; }
 
 /* Imagem de capa */
-.capa-img { width: 100%; max-height: 480px; object-fit: cover; display: block; margin-bottom: 1.5rem; border-radius: 2px; }
-.capa-legenda { font-size: .78rem; color: var(--muted); margin-top: -.5rem; margin-bottom: 1.5rem; font-style: italic; text-align: center; }
+.capa-img { width: 100%; max-height: 480px; object-fit: cover; display: block; margin-bottom: .6rem; border-radius: 4px; }
+.capa-legenda { font-size: .78rem; color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; font-style: italic; text-align: center; }
 
-/* Caixa institucional (link + documento) */
+/* Caixa institucional */
 .inst-box {
   margin-top: 2rem; border-top: 2px solid var(--border); padding-top: 1.5rem;
   display: flex; flex-wrap: wrap; gap: 1rem;
 }
 .btn-link-ext {
   display: inline-flex; align-items: center; gap: .45rem;
-  background: var(--accent); color: #fff; padding: .55rem 1.3rem;
+  background: var(--accent); color: #fff !important; padding: .55rem 1.3rem;
   text-decoration: none; font-weight: 700; font-size: .88rem;
   border-radius: 4px; transition: background .2s;
 }
-.btn-link-ext:hover { background: var(--navy); color: #fff; }
+.btn-link-ext:hover { background: var(--navy); }
 .btn-doc {
   display: inline-flex; align-items: center; gap: .45rem;
-  background: var(--white); color: var(--navy); padding: .55rem 1.3rem;
+  background: var(--white); color: var(--navy) !important; padding: .55rem 1.3rem;
   text-decoration: none; font-weight: 700; font-size: .88rem;
   border-radius: 4px; border: 2px solid var(--border); transition: border-color .2s, color .2s;
 }
-.btn-doc:hover { border-color: var(--accent); color: var(--accent); }
+.btn-doc:hover { border-color: var(--accent); color: var(--accent) !important; }
 
 /* Sidebar */
 .sidebar h3 { font-family: 'Montserrat', sans-serif; font-weight: 800; border-bottom: 2px solid var(--navy); padding-bottom: .4rem; margin-bottom: 1rem; color: var(--navy); }
@@ -54,6 +57,7 @@
 <div class="artigo-wrapper">
   <article class="artigo">
 
+    {# IMAGEM DE CAPA — acima do título #}
     {% if noticia.imagem_url %}
     <img src="{{ noticia.imagem_url }}" alt="{{ noticia.titulo }}" class="capa-img">
     {% if noticia.imagem_legenda %}
@@ -61,7 +65,8 @@
     {% endif %}
     {% endif %}
 
-    <header>
+    {# div.artigo-header em vez de <header> para não herdar gradiente do base.html #}
+    <div class="artigo-header">
       <span class="categoria">{{ noticia.categoria }}</span>
       <h1>{{ noticia.titulo }}</h1>
       {% if noticia.subtitulo %}<p class="subtitulo">{{ noticia.subtitulo }}</p>{% endif %}
@@ -72,7 +77,7 @@
         <span>🔄 Atualizado em {{ noticia.atualizado_em.strftime('%d/%m/%Y') }}</span>
         {% endif %}
       </div>
-    </header>
+    </div>
 
     <div class="conteudo">
       {% for paragrafo in noticia.conteudo.split('\n') %}
@@ -83,13 +88,13 @@
     {% if noticia.link_externo or noticia.documento_url %}
     <div class="inst-box">
       {% if noticia.link_externo %}
-      <a href="{{ noticia.link_externo }}" target="_blank" rel="noopener" class="btn-link-ext">
-        🔗 {{ noticia.link_label or 'Ver mais' }}
+      <a href="{{ noticia.link_externo }}" target="_blank" rel="noopener noreferrer" class="btn-link-ext">
+        🔗 {{ noticia.link_label if noticia.link_label else 'Ver mais' }}
       </a>
       {% endif %}
       {% if noticia.documento_url %}
-      <a href="{{ noticia.documento_url }}" target="_blank" rel="noopener" class="btn-doc">
-        📄 {{ noticia.documento_nome or 'Baixar documento' }}
+      <a href="{{ noticia.documento_url }}" target="_blank" rel="noopener noreferrer" class="btn-doc">
+        📄 {{ noticia.documento_nome if noticia.documento_nome else 'Baixar documento' }}
       </a>
       {% endif %}
     </div>

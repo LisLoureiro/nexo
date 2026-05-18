@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Nexo News{% endblock %}</title>
+  <title>{% block title %}Nexo Data{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
@@ -75,7 +75,7 @@
       gap: .5rem;
     }
     .site-name .nexo { color: var(--white); }
-    .site-name .news {
+    .site-name .Data {
       background: var(--accent);
       color: #fff;
       padding: .1rem .5rem;
@@ -180,7 +180,7 @@
   <div class="header-top">
     <a href="{{ url_for('index') }}" class="site-name">
       <span class="nexo">NEXO</span>
-      <span class="news">NEWS</span>
+      <span class=" Data">NEWS</span>
       <span class="tag">Governamental</span>
     </a>
     <span class="header-meta">
@@ -214,7 +214,7 @@
 <main>{% block content %}{% endblock %}</main>
 
 <footer>
-  &copy; {{ now.year if now else 2025 }} Nexo News Governamental &nbsp;|&nbsp;
+  &copy; {{ now.year if now else 2025 }} Nexo Data Governamental &nbsp;|&nbsp;
   <a href="{{ url_for('admin_login') }}">Área Administrativa</a>
 </footer>
 
