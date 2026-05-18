@@ -9,6 +9,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 from functools import wraps
+import uuid
+from werkzeug.utils import secure_filename
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -22,21 +24,19 @@ DB_CONFIG = {
     'password': os.environ.get('DB_PASSWORD', 'postgres'),
 }
 
-ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
-ADMIN_PASS = os.environ.get('ADMIN_PASS', 'admin123')
+ADMIN_USER  = os.environ.get('ADMIN_USER', 'admin')
+ADMIN_PASS  = os.environ.get('ADMIN_PASS', 'admin123')
 
-SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-SMTP_USER = os.environ.get('SMTP_USER', '')
-SMTP_PASS = os.environ.get('SMTP_PASS', '')
-SMTP_FROM = os.environ.get('SMTP_FROM', SMTP_USER)
+SMTP_HOST   = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT   = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_USER   = os.environ.get('SMTP_USER', '')
+SMTP_PASS   = os.environ.get('SMTP_PASS', '')
+SMTP_FROM   = os.environ.get('SMTP_FROM', SMTP_USER)
 
 # ── Upload ────────────────────────────────────────────────────────────────────
 UPLOAD_FOLDER  = os.path.join('static', 'uploads')
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_DOCS   = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'zip', 'txt'}
-MAX_IMG_MB     = 10
-MAX_DOC_MB     = 20
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
@@ -44,20 +44,18 @@ def _ext(filename):
     return filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
 
 
-def salvar_arquivo(file_obj, allowed_exts, max_mb):
-    """Salva FileStorage em static/uploads/. Retorna URL relativa ou None."""
+def salvar_arquivo(file_obj, allowed_exts):
     if not file_obj or not file_obj.filename:
         return None
     ext = _ext(file_obj.filename)
     if ext not in allowed_exts:
         return None
     nome = f"{uuid.uuid4().hex}.{ext}"
-    caminho = os.path.join(UPLOAD_FOLDER, nome)
-    file_obj.save(caminho)
+    file_obj.save(os.path.join(UPLOAD_FOLDER, nome))
     return f"/static/uploads/{nome}"
 
 
-# ── SecretariaManager ─────────────────────────────────────────────────────────
+# ── SecretariaManager ────────────────────────────────────────────────────────
 _sec_mgr: SecretariaManager | None = None
 
 def get_sec_mgr() -> SecretariaManager:
@@ -101,7 +99,6 @@ def init_db():
                     atualizado_em    TIMESTAMP DEFAULT NOW()
                 );
             """)
-            # Migração segura para bancos já existentes
             for col_sql in [
                 "ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagem_url      TEXT",
                 "ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagem_legenda  VARCHAR(500)",
@@ -111,7 +108,6 @@ def init_db():
                 "ALTER TABLE noticias ADD COLUMN IF NOT EXISTS documento_nome  VARCHAR(200)",
             ]:
                 cur.execute(col_sql)
-
             # Eventos
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS eventos (
@@ -119,15 +115,24 @@ def init_db():
                     titulo      VARCHAR(255) NOT NULL,
                     descricao   TEXT,
                     local       VARCHAR(255),
-                    cor         VARCHAR(20) DEFAULT '#c0392b',
+                    cor         VARCHAR(20) DEFAULT '#4f5de8',
                     data_inicio DATE NOT NULL,
                     data_fim    DATE,
                     hora_inicio TIME,
                     hora_fim    TIME,
                     publicado   BOOLEAN DEFAULT TRUE,
+                    url         TEXT,
+                    url_label   VARCHAR(100),
+                    secretaria  VARCHAR(100),
                     criado_em   TIMESTAMP DEFAULT NOW()
                 );
             """)
+            for col_sql in [
+                "ALTER TABLE eventos ADD COLUMN IF NOT EXISTS url        TEXT",
+                "ALTER TABLE eventos ADD COLUMN IF NOT EXISTS url_label  VARCHAR(100)",
+                "ALTER TABLE eventos ADD COLUMN IF NOT EXISTS secretaria VARCHAR(100)",
+            ]:
+                cur.execute(col_sql)
             # Membros
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS membros (
@@ -143,17 +148,17 @@ def init_db():
             # Projetos
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS projetos (
-                    id            SERIAL PRIMARY KEY,
-                    titulo        VARCHAR(255) NOT NULL,
-                    descricao     TEXT,
-                    secretaria    VARCHAR(100) NOT NULL,
-                    status        VARCHAR(50) DEFAULT 'Planejamento',
-                    responsavel   VARCHAR(150),
-                    orcamento     NUMERIC(15,2),
-                    data_inicio   DATE,
-                    data_fim      DATE,
-                    progresso     INTEGER DEFAULT 0,
-                    criado_em     TIMESTAMP DEFAULT NOW(),
+                    id          SERIAL PRIMARY KEY,
+                    titulo      VARCHAR(255) NOT NULL,
+                    descricao   TEXT,
+                    secretaria  VARCHAR(100) NOT NULL,
+                    status      VARCHAR(50) DEFAULT 'Planejamento',
+                    responsavel VARCHAR(150),
+                    orcamento   NUMERIC(15,2),
+                    data_inicio DATE,
+                    data_fim    DATE,
+                    progresso   INTEGER DEFAULT 0,
+                    criado_em   TIMESTAMP DEFAULT NOW(),
                     atualizado_em TIMESTAMP DEFAULT NOW()
                 );
             """)
@@ -167,16 +172,16 @@ def init_db():
                     criado_em  TIMESTAMP DEFAULT NOW()
                 );
             """)
-            # Log de e-mails
+            # Log de e-mails enviados
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS email_log (
-                    id            SERIAL PRIMARY KEY,
-                    assunto       VARCHAR(255),
+                    id           SERIAL PRIMARY KEY,
+                    assunto      VARCHAR(255),
                     destinatarios TEXT,
-                    secretaria    VARCHAR(100),
-                    enviado_em    TIMESTAMP DEFAULT NOW(),
-                    sucesso       BOOLEAN DEFAULT TRUE,
-                    erro          TEXT
+                    secretaria   VARCHAR(100),
+                    enviado_em   TIMESTAMP DEFAULT NOW(),
+                    sucesso      BOOLEAN DEFAULT TRUE,
+                    erro         TEXT
                 );
             """)
             # ── Seed inicial ──────────────────────────────────────────
@@ -197,16 +202,15 @@ def init_db():
                     INSERT INTO membros (nome, email, secretaria, cargo, ativo)
                     VALUES (%s,%s,%s,%s,%s);
                 """, [
-                    ('Ana Paula Rocha',  'ana.rocha@gestao.gov.br',      'Gestão', 'Secretária de Gestão',      True),
-                    ('Carlos Mendes',    'carlos.mendes@gestao.gov.br',   'Gestão', 'Coordenador de TI',         True),
-                    ('Beatriz Souza',    'beatriz.souza@gestao.gov.br',   'Gestão', 'Analista de Projetos',      True),
-                    ('Rafael Oliveira',  'rafael.oliveira@gestao.gov.br', 'Gestão', 'Assistente Administrativo', True),
+                    ('Ana Paula Rocha',    'ana.rocha@gestao.gov.br',    'Gestão', 'Secretária de Gestão', True),
+                    ('Carlos Mendes',      'carlos.mendes@gestao.gov.br', 'Gestão', 'Coordenador de TI',    True),
+                    ('Beatriz Souza',      'beatriz.souza@gestao.gov.br', 'Gestão', 'Analista de Projetos', True),
+                    ('Rafael Oliveira',    'rafael.oliveira@gestao.gov.br','Gestão', 'Assistente Administrativo', True),
                 ])
             cur.execute("SELECT COUNT(*) FROM projetos;")
             if cur.fetchone()[0] == 0:
                 cur.executemany("""
-                    INSERT INTO projetos
-                      (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso)
+                    INSERT INTO projetos (titulo, descricao, secretaria, status, responsavel, orcamento, data_inicio, data_fim, progresso)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);
                 """, [
                     ('Modernização do Sistema de RH',
@@ -253,6 +257,7 @@ def login_required(f):
 
 
 def enviar_email(destinatarios, assunto, html, secretaria=''):
+    """Envia e-mail via SMTP. Retorna (sucesso, erro)."""
     if not SMTP_USER or not SMTP_PASS:
         return False, 'SMTP não configurado (defina SMTP_USER e SMTP_PASS)'
     try:
@@ -261,20 +266,27 @@ def enviar_email(destinatarios, assunto, html, secretaria=''):
         msg['From']    = SMTP_FROM
         msg['To']      = ', '.join(destinatarios)
         msg.attach(MIMEText(html, 'html', 'utf-8'))
+
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as srv:
-            srv.ehlo(); srv.starttls(); srv.login(SMTP_USER, SMTP_PASS)
+            srv.ehlo()
+            srv.starttls()
+            srv.login(SMTP_USER, SMTP_PASS)
             srv.sendmail(SMTP_FROM, destinatarios, msg.as_string())
+
+        # Log
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso) VALUES (%s,%s,%s,TRUE);",
-                            (assunto, ', '.join(destinatarios), secretaria))
+                cur.execute(
+                    "INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso) VALUES (%s,%s,%s,TRUE);",
+                    (assunto, ', '.join(destinatarios), secretaria))
             conn.commit()
         return True, None
     except Exception as e:
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso,erro) VALUES (%s,%s,%s,FALSE,%s);",
-                            (assunto, ', '.join(destinatarios), secretaria, str(e)))
+                cur.execute(
+                    "INSERT INTO email_log (assunto,destinatarios,secretaria,sucesso,erro) VALUES (%s,%s,%s,FALSE,%s);",
+                    (assunto, ', '.join(destinatarios), secretaria, str(e)))
             conn.commit()
         return False, str(e)
 
@@ -309,12 +321,8 @@ def noticia(id):
             noticia = cur.fetchone()
             if not noticia:
                 return render_template('404.html'), 404
-            cur.execute("""
-                SELECT id, titulo, imagem_url, criado_em
-                FROM noticias
-                WHERE publicado=TRUE AND id<>%s AND categoria=%s
-                ORDER BY criado_em DESC LIMIT 3;
-            """, (id, noticia['categoria']))
+            cur.execute("SELECT id,titulo,imagem_url,criado_em FROM noticias WHERE publicado=TRUE AND id<>%s AND categoria=%s ORDER BY criado_em DESC LIMIT 3;",
+                        (id, noticia['categoria']))
             relacionadas = cur.fetchall()
     return render_template('noticia.html', noticia=noticia, relacionadas=relacionadas)
 
@@ -335,8 +343,11 @@ def calendario():
         'end': e['data_fim'].isoformat() if e['data_fim'] else e['data_inicio'].isoformat(),
         'color': e['cor'],
         'extendedProps': {
-            'descricao': e['descricao'] or '',
-            'local': e['local'] or '',
+            'descricao':   e['descricao'] or '',
+            'local':       e['local'] or '',
+            'secretaria':  e['secretaria'] or '',
+            'url':         e['url'] or '',
+            'url_label':   e['url_label'] or 'Ver mais',
             'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
             'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
         }
@@ -345,7 +356,7 @@ def calendario():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PÚBLICAS — PROJETOS / SECRETARIAS
+# PÚBLICAS — PROJETOS POR SECRETARIA
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route('/secretarias')
@@ -357,6 +368,7 @@ def secretarias():
 
 @app.route('/secretarias/<secretaria>')
 def secretaria_detalhe(secretaria):
+    # redireciona para visão geral
     return redirect(url_for('sec_visao_geral', secretaria=secretaria))
 
 
@@ -367,9 +379,11 @@ def projeto_detalhe(id):
     if not projeto:
         return render_template('404.html'), 404
     updates = mgr.projeto_updates(id)
+    badge_class = mgr.badge_class
+    progresso_cor = mgr.progresso_cor
     return render_template('projeto_detalhe.html', projeto=projeto,
-                           updates=updates, badge_class=mgr.badge_class,
-                           progresso_cor=mgr.progresso_cor)
+                           updates=updates, badge_class=badge_class,
+                           progresso_cor=progresso_cor)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -450,29 +464,21 @@ def admin_nova():
         imagem_legenda = request.form.get('imagem_legenda', '').strip() or None
         link_externo   = request.form.get('link_externo', '').strip() or None
         link_label     = request.form.get('link_label', '').strip() or None
-
-        # Upload de imagem
-        imagem_url = salvar_arquivo(request.files.get('imagem'), ALLOWED_IMAGES, MAX_IMG_MB)
-
-        # Upload de documento
+        imagem_url     = salvar_arquivo(request.files.get('imagem'), ALLOWED_IMAGES)
         doc_file       = request.files.get('documento')
-        documento_url  = salvar_arquivo(doc_file, ALLOWED_DOCS, MAX_DOC_MB)
+        documento_url  = salvar_arquivo(doc_file, ALLOWED_DOCS)
         documento_nome = secure_filename(doc_file.filename) if doc_file and doc_file.filename else None
-
         if not titulo or not conteudo:
             flash('Título e conteúdo são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("""
-                        INSERT INTO noticias
-                          (titulo, subtitulo, conteudo, categoria, autor, publicado,
-                           imagem_url, imagem_legenda, link_externo, link_label,
-                           documento_url, documento_nome)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
-                    """, (titulo, subtitulo, conteudo, categoria, autor, publicado,
-                          imagem_url, imagem_legenda, link_externo, link_label,
-                          documento_url, documento_nome))
+                    cur.execute("""INSERT INTO noticias
+                        (titulo,subtitulo,conteudo,categoria,autor,publicado,
+                         imagem_url,imagem_legenda,link_externo,link_label,documento_url,documento_nome)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""",
+                        (titulo,subtitulo,conteudo,categoria,autor,publicado,
+                         imagem_url,imagem_legenda,link_externo,link_label,documento_url,documento_nome))
                 conn.commit()
             flash('Notícia publicada!', 'success')
             return redirect(url_for('admin_noticias'))
@@ -489,7 +495,6 @@ def admin_editar(id):
     if not noticia:
         flash('Notícia não encontrada.', 'error')
         return redirect(url_for('admin_noticias'))
-
     if request.method == 'POST':
         titulo         = request.form['titulo'].strip()
         subtitulo      = request.form.get('subtitulo', '').strip()
@@ -500,19 +505,15 @@ def admin_editar(id):
         imagem_legenda = request.form.get('imagem_legenda', '').strip() or None
         link_externo   = request.form.get('link_externo', '').strip() or None
         link_label     = request.form.get('link_label', '').strip() or None
-
-        # Imagem: novo upload > manter atual > remover
-        nova_img = salvar_arquivo(request.files.get('imagem'), ALLOWED_IMAGES, MAX_IMG_MB)
+        nova_img = salvar_arquivo(request.files.get('imagem'), ALLOWED_IMAGES)
         if nova_img:
             imagem_url = nova_img
         elif 'remover_imagem' in request.form:
             imagem_url = None
         else:
             imagem_url = noticia['imagem_url']
-
-        # Documento: novo upload > manter atual > remover
-        doc_file  = request.files.get('documento')
-        nova_doc  = salvar_arquivo(doc_file, ALLOWED_DOCS, MAX_DOC_MB)
+        doc_file = request.files.get('documento')
+        nova_doc = salvar_arquivo(doc_file, ALLOWED_DOCS)
         if nova_doc:
             documento_url  = nova_doc
             documento_nome = secure_filename(doc_file.filename)
@@ -522,24 +523,19 @@ def admin_editar(id):
         else:
             documento_url  = noticia['documento_url']
             documento_nome = noticia['documento_nome']
-
         if not titulo or not conteudo:
             flash('Título e conteúdo são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE noticias SET
-                          titulo=%s, subtitulo=%s, conteudo=%s, categoria=%s,
-                          autor=%s, publicado=%s,
-                          imagem_url=%s, imagem_legenda=%s,
-                          link_externo=%s, link_label=%s,
-                          documento_url=%s, documento_nome=%s,
-                          atualizado_em=NOW()
-                        WHERE id=%s;
-                    """, (titulo, subtitulo, conteudo, categoria, autor, publicado,
-                          imagem_url, imagem_legenda, link_externo, link_label,
-                          documento_url, documento_nome, id))
+                    cur.execute("""UPDATE noticias SET
+                        titulo=%s,subtitulo=%s,conteudo=%s,categoria=%s,autor=%s,publicado=%s,
+                        imagem_url=%s,imagem_legenda=%s,link_externo=%s,link_label=%s,
+                        documento_url=%s,documento_nome=%s,atualizado_em=NOW()
+                        WHERE id=%s;""",
+                        (titulo,subtitulo,conteudo,categoria,autor,publicado,
+                         imagem_url,imagem_legenda,link_externo,link_label,
+                         documento_url,documento_nome,id))
                 conn.commit()
             flash('Notícia atualizada!', 'success')
             return redirect(url_for('admin_noticias'))
@@ -594,15 +590,24 @@ def admin_evento_novo():
         publicado='publicado' in request.form
         if not titulo or not data_inicio:
             flash('Título e data de início são obrigatórios.', 'error')
+        url           = request.form.get('url', '').strip() or None
+        url_label     = request.form.get('url_label', '').strip() or None
+        secretaria_ev = request.form.get('secretaria', '').strip() or None
+        if not titulo or not data_inicio:
+            flash('Título e data de início são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("INSERT INTO eventos (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);",
-                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado))
+                    cur.execute("""INSERT INTO eventos
+                        (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,
+                         publicado,url,url_label,secretaria)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""",
+                        (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,
+                         publicado,url,url_label,secretaria_ev))
                 conn.commit()
             flash('Evento criado!', 'success')
             return redirect(url_for('admin_eventos'))
-    return render_template('admin/evento_form.html', evento=None)
+    return render_template('admin/evento_form.html', evento=None, secretarias=SECRETARIAS)
 
 
 @app.route('/admin/eventos/editar/<int:id>', methods=['GET', 'POST'])
@@ -625,15 +630,24 @@ def admin_evento_editar(id):
         publicado='publicado' in request.form
         if not titulo or not data_inicio:
             flash('Título e data de início são obrigatórios.', 'error')
+        url           = request.form.get('url', '').strip() or None
+        url_label     = request.form.get('url_label', '').strip() or None
+        secretaria_ev = request.form.get('secretaria', '').strip() or None
+        if not titulo or not data_inicio:
+            flash('Título e data de início são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("UPDATE eventos SET titulo=%s,descricao=%s,local=%s,cor=%s,data_inicio=%s,data_fim=%s,hora_inicio=%s,hora_fim=%s,publicado=%s WHERE id=%s;",
-                                (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,publicado,id))
+                    cur.execute("""UPDATE eventos SET
+                        titulo=%s,descricao=%s,local=%s,cor=%s,data_inicio=%s,data_fim=%s,
+                        hora_inicio=%s,hora_fim=%s,publicado=%s,url=%s,url_label=%s,secretaria=%s
+                        WHERE id=%s;""",
+                        (titulo,descricao,local,cor,data_inicio,data_fim,hora_inicio,hora_fim,
+                         publicado,url,url_label,secretaria_ev,id))
                 conn.commit()
             flash('Evento atualizado!', 'success')
             return redirect(url_for('admin_eventos'))
-    return render_template('admin/evento_form.html', evento=evento)
+    return render_template('admin/evento_form.html', evento=evento, secretarias=SECRETARIAS)
 
 
 @app.route('/admin/eventos/excluir/<int:id>', methods=['POST'])
@@ -748,7 +762,8 @@ def admin_email():
     if request.method == 'POST':
         assunto    = request.form['assunto'].strip()
         mensagem   = request.form['mensagem'].strip()
-        secretaria = request.form.get('secretaria', '')
+        secretaria = request.form.get('secretaria', '')  # vazio = todos
+
         if not assunto or not mensagem:
             flash('Assunto e mensagem são obrigatórios.', 'error')
         else:
@@ -759,6 +774,7 @@ def admin_email():
                     else:
                         cur.execute("SELECT email,nome FROM membros WHERE ativo=TRUE;")
                     dest = cur.fetchall()
+
             if not dest:
                 flash('Nenhum membro ativo encontrado para envio.', 'error')
             else:
@@ -801,13 +817,15 @@ def admin_projetos():
 @login_required
 def admin_projeto_novo():
     if request.method == 'POST':
-        titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
-        secretaria=request.form['secretaria'].strip(); status=request.form.get('status','Planejamento')
-        responsavel=request.form.get('responsavel','').strip()
-        orcamento=request.form.get('orcamento') or None
-        data_inicio=request.form.get('data_inicio') or None
-        data_fim=request.form.get('data_fim') or None
-        progresso=int(request.form.get('progresso',0))
+        titulo      = request.form['titulo'].strip()
+        descricao   = request.form.get('descricao','').strip()
+        secretaria  = request.form['secretaria'].strip()
+        status      = request.form.get('status','Planejamento')
+        responsavel = request.form.get('responsavel','').strip()
+        orcamento   = request.form.get('orcamento') or None
+        data_inicio = request.form.get('data_inicio') or None
+        data_fim    = request.form.get('data_fim') or None
+        progresso   = int(request.form.get('progresso', 0))
         if not titulo or not secretaria:
             flash('Título e secretaria são obrigatórios.', 'error')
         else:
@@ -940,8 +958,11 @@ def sec_eventos(secretaria):
             'end': e['data_fim'].isoformat() if e['data_fim'] else e['data_inicio'].isoformat(),
             'color': e['cor'],
             'extendedProps': {
-                'descricao': e['descricao'] or '',
-                'local': e['local'] or '',
+                'descricao':   e['descricao'] or '',
+                'local':       e['local'] or '',
+                'secretaria':  e.get('secretaria') or '',
+                'url':         e.get('url') or '',
+                'url_label':   e.get('url_label') or 'Ver mais',
                 'hora_inicio': e['hora_inicio'].strftime('%H:%M') if e['hora_inicio'] else '',
                 'hora_fim':    e['hora_fim'].strftime('%H:%M')    if e['hora_fim']    else '',
             }
@@ -952,6 +973,7 @@ def sec_eventos(secretaria):
         eventos_json=eventos_json,
         proximos=proximos,
     )
+
 
 
 # ── helper dinâmico de secretarias ───────────────────────────────────────────
@@ -998,7 +1020,7 @@ def admin_secretarias():
                 with conn.cursor() as cur:
                     cur.execute("DELETE FROM secretarias WHERE id=%s;", (sid,))
                 conn.commit()
-            flash('Secretaria removida.', 'success')
+            flash(f'Secretaria removida.', 'success')
         return redirect(url_for('admin_secretarias'))
 
     try:

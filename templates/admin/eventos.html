@@ -13,7 +13,15 @@
   {% else %}
   <table>
     <thead>
-      <tr><th>Título</th><th>Data início</th><th>Local</th><th>Status</th><th>Ações</th></tr>
+      <tr>
+        <th>Título</th>
+        <th>Data início</th>
+        <th>Local</th>
+        <th>Secretaria</th>
+        <th>Link</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
     </thead>
     <tbody>
       {% for e in eventos %}
@@ -21,7 +29,27 @@
         <td><strong>{{ e.titulo }}</strong></td>
         <td>{{ e.data_inicio.strftime('%d/%m/%Y') }}</td>
         <td>{{ e.local or '—' }}</td>
-        <td>{% if e.publicado %}<span class="badge badge-pub">Publicado</span>{% else %}<span class="badge badge-draft">Oculto</span>{% endif %}</td>
+        <td>
+          {% if e.secretaria %}
+            <span class="badge badge-blue">{{ e.secretaria }}</span>
+          {% else %}
+            <span style="color:var(--muted);font-size:.8rem">Geral</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if e.url %}
+            <a href="{{ e.url }}" target="_blank" class="btn btn-outline btn-sm">🔗 Ver</a>
+          {% else %}
+            <span style="color:var(--muted);font-size:.8rem">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if e.publicado %}
+            <span class="badge badge-pub">Publicado</span>
+          {% else %}
+            <span class="badge badge-draft">Oculto</span>
+          {% endif %}
+        </td>
         <td style="white-space:nowrap;display:flex;gap:.35rem">
           <a href="{{ url_for('admin_evento_editar', id=e.id) }}" class="btn btn-outline btn-sm">Editar</a>
           <form method="post" action="{{ url_for('admin_evento_excluir', id=e.id) }}" style="display:inline"

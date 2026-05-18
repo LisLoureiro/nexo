@@ -86,7 +86,13 @@
       <span id="modal-local"></span>
     </div>
     <p class="modal-desc" id="modal-desc"></p>
-    <a id="modal-link" class="modal-link" href="#" target="_blank" rel="noopener">🔗 link </a>
+    <div id="modal-secretaria" style="display:none;margin-top:.5rem">
+      <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+                   background:#dde4ff;color:#2236b0;padding:.2rem .7rem;border-radius:3px">
+        🏛 <span id="modal-sec-nome"></span>
+      </span>
+    </div>
+    <a id="modal-link" class="modal-link" href="#" target="_blank" rel="noopener">🔗 Ver mais</a>
   </div>
 </div>
 
@@ -129,10 +135,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var descEl = document.getElementById('modal-desc');
       descEl.textContent = p.descricao || ''; descEl.style.display = p.descricao ? '' : 'none';
 
+      var secEl = document.getElementById('modal-secretaria');
+      var secNome = document.getElementById('modal-sec-nome');
+      if (p.secretaria) { secNome.textContent = p.secretaria; secEl.style.display = 'block'; }
+      else { secEl.style.display = 'none'; }
+
       var linkEl = document.getElementById('modal-link');
       var href = (p.url || '').trim();
-      if (href) { linkEl.href = href; linkEl.style.display = 'inline-flex'; }
-      else { linkEl.style.display = 'none'; }
+      if (href) {
+        linkEl.href = href;
+        linkEl.textContent = '🔗 ' + (p.url_label || 'Ver mais');
+        linkEl.style.display = 'inline-flex';
+      } else { linkEl.style.display = 'none'; }
 
       document.getElementById('modal').classList.add('open');
     }

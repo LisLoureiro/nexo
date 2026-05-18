@@ -54,12 +54,32 @@
                  value="{{ evento.cor if evento else '#4f5de8' }}" style="height:42px;padding:.2rem">
         </div>
       </div>
+
+      <!-- Secretaria -->
+      <div class="form-group">
+        <label for="secretaria">Secretaria responsável</label>
+        <select id="secretaria" name="secretaria" class="form-control">
+          <option value="">— Nenhuma / Geral —</option>
+          {% for s in secretarias %}
+          <option value="{{ s }}" {% if evento and evento.secretaria==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Link externo -->
       <div class="form-group">
         <label for="url">Link externo (opcional)</label>
         <input id="url" name="url" class="form-control" type="url"
                value="{{ evento.url if evento and evento.url else '' }}"
                placeholder="https://... — aparece como botão no modal do calendário">
       </div>
+      <div class="form-group">
+        <label for="url_label">Texto do botão do link</label>
+        <input id="url_label" name="url_label" class="form-control" type="text"
+               value="{{ evento.url_label if evento and evento.url_label else '' }}"
+               placeholder="Ex: Ver edital, Acessar inscrições, Saiba mais">
+      </div>
+
       <div class="form-check" style="margin-bottom:1.2rem">
         <input id="publicado" name="publicado" type="checkbox"
                {% if not evento or evento.publicado %}checked{% endif %}>
