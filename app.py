@@ -34,7 +34,7 @@ SMTP_PASS   = os.environ.get('SMTP_PASS', '')
 SMTP_FROM   = os.environ.get('SMTP_FROM', SMTP_USER)
 
 # ── Upload ────────────────────────────────────────────────────────────────────
-UPLOAD_FOLDER  = os.path.join('static', 'uploads')
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_DOCS   = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'zip', 'txt'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
