@@ -482,7 +482,7 @@ def admin_nova():
                 conn.commit()
             flash('Notícia publicada!', 'success')
             return redirect(url_for('admin_noticias'))
-    return render_template('admin/form.html', noticia=None)
+    return render_template('admin/form.html', noticia=None, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/editar/<int:id>', methods=['GET', 'POST'])
@@ -539,7 +539,7 @@ def admin_editar(id):
                 conn.commit()
             flash('Notícia atualizada!', 'success')
             return redirect(url_for('admin_noticias'))
-    return render_template('admin/form.html', noticia=noticia)
+    return render_template('admin/form.html', noticia=noticia, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/excluir/<int:id>', methods=['POST'])
@@ -607,7 +607,7 @@ def admin_evento_novo():
                 conn.commit()
             flash('Evento criado!', 'success')
             return redirect(url_for('admin_eventos'))
-    return render_template('admin/evento_form.html', evento=None, secretarias=SECRETARIAS)
+    return render_template('admin/evento_form.html', evento=None, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/eventos/editar/<int:id>', methods=['GET', 'POST'])
@@ -647,7 +647,7 @@ def admin_evento_editar(id):
                 conn.commit()
             flash('Evento atualizado!', 'success')
             return redirect(url_for('admin_eventos'))
-    return render_template('admin/evento_form.html', evento=evento, secretarias=SECRETARIAS)
+    return render_template('admin/evento_form.html', evento=evento, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/eventos/excluir/<int:id>', methods=['POST'])
@@ -677,7 +677,7 @@ def admin_membros():
                 cur.execute("SELECT * FROM membros ORDER BY secretaria, nome;")
             membros = cur.fetchall()
     return render_template('admin/membros.html', membros=membros,
-                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria)
 
 
 @app.route('/admin/membros/novo', methods=['GET', 'POST'])
@@ -702,7 +702,7 @@ def admin_membro_novo():
                 return redirect(url_for('admin_membros'))
             except psycopg2.errors.UniqueViolation:
                 flash('E-mail já cadastrado.', 'error')
-    return render_template('admin/membro_form.html', membro=None, secretarias=SECRETARIAS)
+    return render_template('admin/membro_form.html', membro=None, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/membros/editar/<int:id>', methods=['GET', 'POST'])
@@ -731,7 +731,7 @@ def admin_membro_editar(id):
             return redirect(url_for('admin_membros'))
         except psycopg2.errors.UniqueViolation:
             flash('E-mail já cadastrado por outro membro.', 'error')
-    return render_template('admin/membro_form.html', membro=membro, secretarias=SECRETARIAS)
+    return render_template('admin/membro_form.html', membro=membro, secretarias=get_secretarias_lista())
 
 
 @app.route('/admin/membros/excluir/<int:id>', methods=['POST'])
@@ -754,10 +754,9 @@ def admin_membro_excluir(id):
 def admin_email():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT DISTINCT secretaria FROM membros WHERE ativo=TRUE ORDER BY secretaria;")
-            secs_com_membros = [r['secretaria'] for r in cur.fetchall()]
             cur.execute("SELECT * FROM email_log ORDER BY enviado_em DESC LIMIT 30;")
             logs = cur.fetchall()
+    secs_com_membros = get_secretarias_lista()
 
     if request.method == 'POST':
         assunto    = request.form['assunto'].strip()
@@ -810,7 +809,7 @@ def admin_projetos():
                 cur.execute("SELECT * FROM projetos ORDER BY atualizado_em DESC;")
             projetos = cur.fetchall()
     return render_template('admin/projetos.html', projetos=projetos,
-                           secretarias=SECRETARIAS, secretaria_filtro=secretaria)
+                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria)
 
 
 @app.route('/admin/projetos/novo', methods=['GET', 'POST'])
@@ -839,7 +838,7 @@ def admin_projeto_novo():
             flash('Projeto criado!', 'success')
             return redirect(url_for('admin_projetos'))
     return render_template('admin/projeto_form.html', projeto=None,
-                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+                           secretarias=get_secretarias_lista(), status_list=STATUS_PROJETO)
 
 
 @app.route('/admin/projetos/editar/<int:id>', methods=['GET', 'POST'])
@@ -883,7 +882,7 @@ def admin_projeto_editar(id):
             flash('Projeto atualizado!', 'success')
         return redirect(url_for('admin_projeto_editar', id=id))
     return render_template('admin/projeto_form.html', projeto=projeto, updates=updates,
-                           secretarias=SECRETARIAS, status_list=STATUS_PROJETO)
+                           secretarias=get_secretarias_lista(), status_list=STATUS_PROJETO)
 
 
 @app.route('/admin/projetos/excluir/<int:id>', methods=['POST'])

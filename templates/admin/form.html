@@ -75,9 +75,9 @@
         <div class="form-group">
           <label for="categoria">Categoria</label>
           <select id="categoria" name="categoria" class="form-control" onchange="toggleInstitucional(this.value)">
-            {% set cats = ['Geral','Política','Economia','Tecnologia','Esportes','Saúde','Cultura','Institucional',
-                           'Gestão','Administração','Educação','Obras','Finanças','Meio Ambiente','Assistência Social','Planejamento'] %}
-            {% for c in cats %}
+            {% set cats_fixas = ['Geral','Política','Economia','Tecnologia','Esportes','Saúde','Cultura','Institucional'] %}
+            {% set todas_cats = (cats_fixas + secretarias) | unique | list %}
+            {% for c in todas_cats %}
             <option value="{{ c }}" {% if noticia and noticia.categoria==c %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
           </select>
