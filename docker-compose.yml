@@ -30,12 +30,12 @@ services:
       DB_PASSWORD: postgres
       ADMIN_USER: admin
       ADMIN_PASS: admin123
-      SECRET_KEY: troque-esta-chave-em-producao
+      SECRET_KEY: openssl rand -hex 32
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587
-      SMTP_USER: ""
-      SMTP_PASS: ""
-      SMTP_FROM: ""
+      SMTP_USER: "lisloureiro.sousa@gmail.com"
+      SMTP_PASS: "gbgq dkll ccgl oopu"
+      SMTP_FROM: "lisloureiro.sousa@gmail.com"
     volumes:
       # Monta templates e static como volumes — mudanças aparecem sem rebuild
       - ./templates:/app/templates
