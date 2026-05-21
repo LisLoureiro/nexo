@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexo Governamental — Conectando governo e sociedade</title>
+  <meta name="description" content="Plataforma da Secretaria de Governo para articulação, transparência e resultados." />
+  <meta property="og:title" content="Nexo Governamental" />
+  <meta property="og:description" content="Conectando governo e sociedade." />
+  <style>
+    :root {
+      --navy: #1a1f5e;
+      --yellow: #f5c200;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--navy); color: white; }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      border-bottom: 0.5px solid rgba(255,255,255,0.1);
+    }
+    .logo {
+      font-weight: 900;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .logo span { color: var(--yellow); }
+    nav ul { display: flex; gap: 2rem; list-style: none; }
+    nav ul a {
+      color: white;
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    nav ul a:hover { opacity: 1; color: var(--yellow); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 3rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 5rem 2.5rem 4rem;
+    }
+    .eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--yellow);
+    }
+    .wordmark {
+      margin-top: 1.5rem;
+      line-height: 0.95;
+    }
+    .wordmark .nexo {
+      display: block;
+      font-size: 5.5rem;
+      font-weight: 900;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+    .wordmark .gov {
+      display: block;
+      font-size: 5.5rem;
+      font-weight: 900;
+      color: var(--yellow);
+      letter-spacing: -0.02em;
+    }
+    .hero-desc {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.75);
+      max-width: 480px;
+    }
+    .hero-buttons {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .btn-primary {
+      background: var(--yellow);
+      color: var(--navy);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .eixos {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.75rem;
+      padding-top: 0.5rem;
+    }
+    .eixos-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--yellow);
+      margin-bottom: 0.5rem;
+      align-self: flex-end;
+    }
+    .pill {
+      padding: 0.5rem 1.25rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.7);
+      white-space: nowrap;
+    }
+    .pill.active {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    .yellow-band {
+      background: var(--yellow);
+      padding: 3.5rem 2.5rem;
+      text-align: center;
+    }
+    .yellow-band .eyebrow-band {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--navy);
+      opacity: 0.6;
+      margin-bottom: 0.75rem;
+    }
+    .yellow-band h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .yellow-band p {
+      font-size: 1rem;
+      color: var(--navy);
+      opacity: 0.75;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 3rem 1.5rem;
+      }
+      .wordmark .nexo,
+      .wordmark .gov {
+        font-size: 3.5rem;
+      }
+      .eixos { align-items: flex-start; }
+      .eixos-label { align-self: flex-start; }
+      nav ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">Nexo <span>Governamental</span></div>
+    <ul>
+      <li><a href="#">Home</a></li>
+      <li><a href="#">Sobre</a></li>
+      <li><a href="#">Metas</a></li>
+      <li><a href="#">Eixos</a></li>
+      <li><a href="#">Contato</a></li>
+    </ul>
+  </nav>
+
+  <section>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Secretaria de Governo</p>
+        <div class="wordmark">
+          <span class="nexo">NEXO</span>
+          <span class="gov">GOVERNAMENTAL</span>
+        </div>
+        <p class="hero-desc">
+          O elo entre as ações do governo e as demandas da sociedade. Articulação,
+          transparência e resultados que impactam a vida das pessoas.
+        </p>
+        <div class="hero-buttons">
+          <a href="/sobre" class="btn-primary">Conheça a secretaria</a>
+          <a href="/metas" class="btn-secondary">Metas do semestre</a>
+        </div>
+      </div>
+      <div class="eixos">
+        <p class="eixos-label">Eixos de atuação</p>
+        <span class="pill active">Gestão eficiente</span>
+        <span class="pill">Transparência ativa</span>
+        <span class="pill">Inovação pública</span>
+        <span class="pill">Participação social</span>
+        <span class="pill">Desenvolvimento regional</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="yellow-band">
+    <p class="eyebrow-band">Compromisso</p>
+    <h2>Mais resultados para quem mais precisa</h2>
+    <p>
+      Atuamos em rede, integrando órgãos, municípios e sociedade civil para entregar
+      políticas públicas que funcionam.
+    </p>
+  </div>
+
+</body>
+</html>

@@ -2,6 +2,49 @@
 {% block title %}Nexo Data — Início{% endblock %}
 
 {% block extra_styles %}
+body { background: var(--dark-bg); color: white; }
+
+/* Adaptações para fundo escuro */
+.card-principal {
+  background: rgba(255,255,255,0.95);
+  border-top: 4px solid var(--accent);
+  color: var(--navy);
+}
+.card-principal .sub { color: var(--muted); }
+.card-principal .meta { color: var(--muted); }
+.card-principal a.ler {
+  background: var(--accent);
+  color: var(--navy);
+}
+.card-principal a.ler:hover {
+  background: var(--navy);
+  color: white;
+}
+
+.card-mini {
+  background: rgba(255,255,255,0.95);
+  color: var(--navy);
+}
+.card-mini h3 a { color: var(--navy); }
+.card-mini h3 a:hover { color: var(--accent); }
+.card-mini .meta { color: var(--muted); }
+
+.card {
+  background: rgba(255,255,255,0.95);
+  color: var(--navy);
+}
+.card-body h3 { color: var(--navy); }
+.card-body h3 a { color: var(--navy); }
+.card-body h3 a:hover { color: var(--accent); }
+.card-body p { color: var(--muted); }
+.card-body .meta { color: var(--muted); }
+
+.secao-titulo {
+  border-bottom: 2px solid var(--accent);
+  color: white;
+}
+.vazio { color: rgba(255,255,255,0.75); }
+.vazio h2 { color: white; }
 .destaque { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; padding-bottom: 2.5rem; border-bottom: 2px solid var(--border); }
 
 /* Card principal */

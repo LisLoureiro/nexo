@@ -2,6 +2,58 @@
 {% block title %}{{ noticia.titulo }} — Nexo News{% endblock %}
 
 {% block extra_styles %}
+body { background: var(--dark-bg); color: white; }
+
+.artigo-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2.5rem;
+  background: rgba(255,255,255,0.95);
+  padding: 2rem;
+  border-radius: 8px;
+  color: var(--navy);
+}
+
+.artigo .categoria { color: var(--accent); }
+.artigo h1 { color: var(--navy); }
+.artigo .subtitulo { color: var(--muted); }
+.artigo .meta { color: var(--muted); }
+.artigo .conteudo p { color: #1e2a4a; }
+
+.capa-legenda { color: var(--muted); }
+
+.inst-box {
+  border-top: 2px solid var(--border);
+}
+.btn-link-ext {
+  background: var(--accent);
+  color: var(--navy) !important;
+}
+.btn-link-ext:hover {
+  background: var(--navy);
+  color: white !important;
+}
+.btn-doc {
+  background: var(--white);
+  color: var(--navy) !important;
+}
+.btn-doc:hover {
+  border-color: var(--accent);
+  color: var(--accent) !important;
+}
+
+.sidebar h3 {
+  border-bottom: 2px solid var(--accent);
+  color: var(--navy);
+}
+.rel-card {
+  border-bottom: 1px solid var(--border);
+}
+.rel-card a { color: var(--navy); }
+.rel-card a:hover { color: var(--accent); }
+.rel-card .meta { color: var(--muted); }
+
+.voltar { color: var(--muted); }
 .artigo-wrapper { display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem; }
 
 /* Usa .artigo-header em vez de <header> para não herdar o estilo global do base.html */

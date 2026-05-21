@@ -2,6 +2,95 @@
 {% block title %}Calendário de Eventos — Portal News{% endblock %}
 
 {% block extra_styles %}
+body { background: var(--dark-bg); color: white; }
+
+.cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start; }
+.cal-wrap {
+  background: rgba(255,255,255,0.95);
+  padding: 1.5rem;
+  border-top: 4px solid var(--accent);
+  color: var(--navy);
+}
+.page-titulo {
+  color: var(--navy);
+}
+.fc .fc-button-primary {
+  background: var(--navy) !important;
+  border-color: var(--navy) !important;
+  color: white !important;
+}
+.fc .fc-button-primary:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--navy) !important;
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--navy) !important;
+}
+.fc .fc-daygrid-day-number {
+  color: var(--navy);
+  font-size: .85rem;
+}
+.fc .fc-col-header-cell-cushion {
+  color: var(--muted);
+}
+.fc-daygrid-day.fc-day-today {
+  background: rgba(245,194,0,0.1) !important;
+}
+.fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: var(--accent);
+  font-weight: 700;
+}
+.sidebar-eventos h3 {
+  color: var(--navy);
+}
+.evento-item {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.evento-info strong {
+  color: var(--navy);
+}
+.evento-info .data {
+  color: var(--muted);
+}
+.evento-info .local {
+  color: var(--muted);
+}
+.modal {
+  background: rgba(255,255,255,0.95);
+  color: var(--navy);
+}
+.modal-close {
+  color: var(--muted);
+}
+.modal-close:hover {
+  color: var(--accent);
+}
+.modal-categoria {
+  color: var(--accent);
+}
+.modal h2 {
+  color: var(--navy);
+}
+.modal-meta {
+  color: var(--muted);
+}
+.modal-desc {
+  color: var(--navy);
+}
+.modal-link {
+  background:var(--accent);
+  color:var(--navy);
+}
+.modal-link:hover {
+  background:var(--navy);
+  color:var(--accent);
+}
+.sem-eventos {
+  color: var(--muted);
+}
 .cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start; }
 .cal-wrap { background: var(--white); padding: 1.5rem; border-top: 4px solid var(--accent); }
 .page-titulo { font-family: 'Montserrat', sans-serif;font-weight:900; font-size: 2rem; margin-bottom: 1.5rem; padding-bottom: .6rem; border-bottom: 2px solid var(--ink); }
