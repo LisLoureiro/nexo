@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Sobre — Nexo Governamental{% endblock %}
+
+{% block extra_styles %}
+<style>
+.sobre-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 5rem 2.5rem;
+}
+
+.page-intro {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 2rem;
+  line-height: 1.1;
+}
+
+.page-desc {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.85);
+  max-width: 800px;
+  margin: 0 auto 3rem;
+}
+
+.grid-valores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--yellow);
+}
+
+.card-desc {
+  color: rgba(255,255,255,0.75);
+  line-height: 1.6;
+}
+
+.equipe-section {
+  background: var(--yellow);
+  border-radius: 8px;
+  padding: 5rem 2.5rem;
+  text-align: center;
+  margin-top: 4rem;
+}
+
+.equipe-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--navy);
+  margin-bottom: 1.5rem;
+}
+
+.equipe-desc {
+  font-size: 1.1rem;
+  color: var(--navy);
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .grid-valores {
+    grid-template-columns: 1fr;
+  }
+
+  .sobre-content {
+    padding: 2rem 1.5rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sobre-content">
+  <div class="page-intro">
+    <p class="eyebrow">Nossa História</p>
+    <h1 class="page-title">Conectando governo e sociedade</h1>
+    <p class="page-desc">
+      A Secretaria de Governo é o elo central entre as ações executivas e as expectativas da sociedade.
+      Atuamos como ponte estratégica, garantindo articulação, transparência e resultados que impactam
+      positivamente a vida dos cidadãos.
+    </p>
+  </div>
+
+  <div class="grid-valores">
+    <div class="card">
+      <h3 class="card-title">Missão</h3>
+      <p class="card-desc">
+        Articular e integrar as ações do governo para entregar políticas públicas eficazes e
+        transparentes que respondam às necessidades da sociedade.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Visão</h3>
+      <p class="card-desc">
+        Ser referência na articulação interinstitucional, promovendo um governo conectado,
+        transparente e focado em resultados.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Valores</h3>
+      <p class="card-desc">
+        Transparência, integridade, eficiência, colaboração e compromisso com o interesse público.
+      </p>
+    </div>
+  </div>
+
+  <div class="equipe-section">
+    <h2 class="equipe-title">Nossa Equipe</h2>
+    <p class="equipe-desc">
+      Composta por profissionais dedicados e experientes, nossa equipe trabalha incansavelmente
+      para transformar desafios em oportunidades e construir um futuro melhor para todos.
+    </p>
+  </div>
+</div>
+{% endblock %}

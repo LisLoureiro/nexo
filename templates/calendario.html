@@ -1,103 +1,131 @@
 {% extends 'base.html' %}
-{% block title %}Calendário de Eventos — Portal News{% endblock %}
+{% block title %}Calendário de Eventos — Nexo Governamental{% endblock %}
 
 {% block extra_styles %}
-body { background: var(--dark-bg); color: white; }
-
+/* Estilos específicos para calendário */
 .cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start; }
 .cal-wrap {
-  background: rgba(255,255,255,0.95);
+  background: var(--light-bg);
   padding: 1.5rem;
-  border-top: 4px solid var(--accent);
-  color: var(--navy);
+  border-top: 4px solid var(--yellow);
 }
 .page-titulo {
-  color: var(--navy);
+  font-size: 2rem;
+  font-weight: 900;
+  margin-bottom: 1.5rem;
+  padding-bottom: .6rem;
+  border-bottom: 2px solid var(--yellow);
+}
+.fc .fc-toolbar-title {
+  font-size: 1.3rem;
+  font-weight: 900;
 }
 .fc .fc-button-primary {
   background: var(--navy) !important;
   border-color: var(--navy) !important;
-  color: white !important;
+  font-family: inherit;
+  font-size: .8rem;
 }
 .fc .fc-button-primary:hover {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: var(--navy) !important;
+  background: var(--yellow) !important;
+  border-color: var(--yellow) !important;
 }
 .fc .fc-button-primary:not(:disabled).fc-button-active {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: var(--yellow) !important;
+  border-color: var(--yellow) !important;
   color: var(--navy) !important;
 }
 .fc .fc-daygrid-day-number {
-  color: var(--navy);
+  color: var(--text-white);
   font-size: .85rem;
 }
 .fc .fc-col-header-cell-cushion {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .fc-daygrid-day.fc-day-today {
-  background: rgba(245,194,0,0.1) !important;
+  background: rgba(245, 194, 0, 0.2) !important;
 }
 .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  color: var(--accent);
+  color: var(--yellow);
   font-weight: 700;
 }
 .sidebar-eventos h3 {
-  color: var(--navy);
+  color: var(--text-white);
 }
 .evento-item {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid var(--border-light);
+  padding: 1rem 0;
 }
 .evento-info strong {
-  color: var(--navy);
+  color: var(--text-white);
 }
 .evento-info .data {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .evento-info .local {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .modal {
-  background: rgba(255,255,255,0.95);
-  color: var(--navy);
+  background: var(--light-bg);
+  color: var(--text-white);
+  width: 480px;
+  max-width: 95vw;
+  border-top: 5px solid var(--yellow);
+  padding: 2rem;
+  position: relative;
+  animation: slideUp .2s ease;
 }
 .modal-close {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .modal-close:hover {
-  color: var(--accent);
+  color: var(--yellow);
 }
 .modal-categoria {
-  color: var(--accent);
+  color: var(--yellow);
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: .5rem;
+  display: inline-block;
 }
 .modal h2 {
-  color: var(--navy);
+  color: var(--text-white);
+  font-size: 1.5rem;
+  margin-bottom: .5rem;
 }
 .modal-meta {
-  color: var(--muted);
+  color: var(--text-muted);
+  font-size: .85rem;
 }
 .modal-desc {
-  color: var(--navy);
+  color: var(--text-white);
+  margin: 1rem 0;
+  line-height: 1.6;
 }
 .modal-link {
-  background:var(--accent);
-  color:var(--navy);
+  background: var(--yellow);
+  color: var(--navy);
+  display: inline-block;
+  padding: .5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  margin-top: 1rem;
+  transition: all .2s;
 }
 .modal-link:hover {
-  background:var(--navy);
-  color:var(--accent);
+  opacity: 0.9;
 }
 .sem-eventos {
-  color: var(--muted);
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2rem;
 }
-.cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start; }
-.cal-wrap { background: var(--white); padding: 1.5rem; border-top: 4px solid var(--accent); }
-.page-titulo { font-family: 'Montserrat', sans-serif;font-weight:900; font-size: 2rem; margin-bottom: 1.5rem; padding-bottom: .6rem; border-bottom: 2px solid var(--ink); }
-.fc .fc-toolbar-title { font-family: 'Montserrat', sans-serif;font-weight:900; font-size: 1.3rem; }
-.fc .fc-button-primary { background: var(--ink) !important; border-color: var(--ink) !important; font-family: inherit; font-size: .8rem; }
-.fc .fc-button-primary:hover { background: var(--accent) !important; border-color: var(--accent) !important; }
-.fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--accent) !important; border-color: var(--accent) !important; }
+@media(max-width: 768px) {
+  .cal-layout { grid-template-columns: 1fr; }
+}
+{% endblock %}
 .fc .fc-daygrid-day-number { color: var(--ink); font-size: .85rem; }
 .fc .fc-col-header-cell-cushion { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-decoration: none; }
 .fc-event { cursor: pointer; border: none !important; border-radius: 3px !important; font-size: .78rem; font-weight: 600; }
@@ -124,7 +152,6 @@ body { background: var(--dark-bg); color: white; }
 .modal-link:hover { background:var(--navy); color:#fff; }
 .sem-eventos { text-align: center; padding: 2rem; color: var(--muted); font-size: .9rem; }
 @media(max-width:900px){ .cal-layout { grid-template-columns: 1fr; } .sidebar-eventos { order: -1; } }
-{% endblock %}
 
 {% block content %}
 <h1 class="page-titulo">Calendário de Eventos</h1>
