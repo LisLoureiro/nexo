@@ -857,8 +857,9 @@ def admin_projetos():
                 else:
                     cur.execute("SELECT *, COALESCE(nome_projeto, titulo) as nome_projeto_display FROM projetos ORDER BY atualizado_em DESC;")
                 projetos = cur.fetchall()
-            except psycopg2.errors.UndefinedColumn as e:
-                # Fallback query if columns don't exist
+            except psycopg2.errors.UndefinedColumn:
+                # The failed query left the transaction in an aborted state — roll back first
+                conn.rollback()
                 if secretaria:
                     cur.execute("SELECT *, COALESCE(titulo, 'Sem título') as nome_projeto_display FROM projetos WHERE secretaria=%s ORDER BY atualizado_em DESC;", (secretaria,))
                 else:
