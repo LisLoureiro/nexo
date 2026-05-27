@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ projeto.titulo }} — Portal News{% endblock %}
+{% block title %}{{ projeto.nome_projeto }} — Portal News{% endblock %}
 
 {% block extra_styles %}
 .breadcrumb { font-size:.85rem; color:var(--muted); margin-bottom:1.5rem; }
@@ -41,22 +41,28 @@
 
 <div class="layout">
   <div>
-    {% set cls = {'Planejamento':'s-planejamento','Em andamento':'s-em-andamento','Concluído':'s-concluido','Suspenso':'s-suspenso','Cancelado':'s-cancelado'} %}
-    <span class="badge-status {{ cls.get(projeto.status,'') }}">{{ projeto.status }}</span>
-    <h1 class="proj-titulo">{{ projeto.titulo }}</h1>
+    {% set cls = badge_class(projeto.status) %}
+    <span class="badge-status {{ cls }}">{{ projeto.status }}</span>
+    <h1 class="proj-titulo">{{ projeto.nome_projeto }}</h1>
 
     <div class="meta-grid">
-      {% if projeto.responsavel %}
-      <div class="meta-item"><div class="lbl">Responsável</div><div class="val">{{ projeto.responsavel }}</div></div>
+      {% if projeto.nome_completo %}
+      <div class="meta-item"><div class="lbl">Responsável</div><div class="val">{{ projeto.nome_completo }}</div></div>
+      {% endif %}
+      {% if projeto.cargo %}
+      <div class="meta-item"><div class="lbl">Cargo</div><div class="val">{{ projeto.cargo }}</div></div>
       {% endif %}
       {% if projeto.secretaria %}
       <div class="meta-item"><div class="lbl">Secretaria</div><div class="val">{{ projeto.secretaria }}</div></div>
       {% endif %}
+      {% if projeto.eixo %}
+      <div class="meta-item"><div class="lbl">Eixo</div><div class="val">{{ projeto.eixo }}</div></div>
+      {% endif %}
       {% if projeto.data_inicio %}
       <div class="meta-item"><div class="lbl">Início</div><div class="val">{{ projeto.data_inicio.strftime('%d/%m/%Y') }}</div></div>
       {% endif %}
-      {% if projeto.data_fim %}
-      <div class="meta-item"><div class="lbl">Previsão de término</div><div class="val">{{ projeto.data_fim.strftime('%d/%m/%Y') }}</div></div>
+      {% if projeto.data_termino %}
+      <div class="meta-item"><div class="lbl">Término</div><div class="val">{{ projeto.data_termino.strftime('%d/%m/%Y') }}</div></div>
       {% endif %}
       {% if projeto.orcamento %}
       <div class="meta-item"><div class="lbl">Orçamento</div><div class="val">R$ {{ "%.2f"|format(projeto.orcamento) }}</div></div>
@@ -69,9 +75,41 @@
       <div class="prog-bar"><div class="prog-fill" style="width:{{ projeto.progresso }}%"></div></div>
     </div>
 
-    {% if projeto.descricao %}
+    {% if projeto.descricao_resumo %}
     <div class="descricao">
-      {% for p in projeto.descricao.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+      <h3 style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem; margin-bottom: 1rem;">Descrição Resumida</h3>
+      {% for p in projeto.descricao_resumo.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if projeto.objetivos %}
+    <div class="descricao">
+      <h3 style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem; margin-bottom: 1rem;">Objetivos do Projeto</h3>
+      {% for p in projeto.objetivos.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if projeto.metodologia %}
+    <div class="descricao">
+      <h3 style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem; margin-bottom: 1rem;">Metodologia</h3>
+      {% for p in projeto.metodologia.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if projeto.etapas %}
+    <div class="descricao">
+      <h3 style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem; margin-bottom: 1rem;">Etapas do Projeto</h3>
+      {% for p in projeto.etapas.split('\n') %}{% if p.strip() %}<p>{{ p }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if projeto.publico_que_pretende_atingir %}
+    <div class="descricao">
+      <h3 style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem; margin-bottom: 1rem;">Público Alvo</h3>
+      <p><strong>Público que pretende atingir:</strong> {{ projeto.publico_que_pretende_atingir }}</p>
+      {% if projeto.faixa_etaria %}<p><strong>Faixa etária:</strong> {{ projeto.faixa_etaria }}</p>{% endif %}
+      {% if projeto.genero %}<p><strong>Gênero:</strong> {{ projeto.genero }}</p>{% endif %}
+      {% if projeto.estimativa_alcance %}<p><strong>Estimativa de alcance:</strong> {{ projeto.estimativa_alcance }} pessoas</p>{% endif %}
     </div>
     {% endif %}
 

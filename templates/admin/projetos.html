@@ -28,24 +28,44 @@
   {% else %}
   <table>
     <thead>
-      <tr><th>Título</th><th>Secretaria</th><th>Status</th><th>Progresso</th><th>Responsável</th><th>Ações</th></tr>
+      <tr>
+        <th>Projeto</th>
+        <th>Secretaria</th>
+        <th>Eixo</th>
+        <th>Status</th>
+        <th>Progresso</th>
+        <th>Período</th>
+        <th>Responsável</th>
+        <th>Ações</th>
+      </tr>
     </thead>
     <tbody>
       {% for p in projetos %}
       <tr>
-        <td><strong>{{ p.titulo[:55] }}{% if p.titulo|length>55 %}…{% endif %}</strong></td>
-        <td>{{ p.secretaria }}</td>
         <td>
-          {% set cls = {'Planejamento':'badge-yellow','Em andamento':'badge-blue','Concluído':'badge-green','Suspenso':'badge-red','Cancelado':'badge-gray'} %}
-          <span class="badge {{ cls.get(p.status,'badge-gray') }}">{{ p.status }}</span>
+          <strong>{{ p.nome_projeto[:55] }}{% if p.nome_projeto|length>55 %}…{% endif %}</strong>
+          <br><small style="color:var(--muted)">{{ p.cargo or p.nome_completo }}</small>
+        </td>
+        <td>{{ p.secretaria }}</td>
+        <td>{{ p.eixo or '-' }}</td>
+        <td>
+          {% set cls = badge_class(p.status) %}
+          <span class="badge {{ cls }}">{{ p.status }}</span>
         </td>
         <td style="min-width:100px">
           <div style="display:flex;align-items:center;gap:.5rem">
-            <div class="prog-bar" style="flex:1"><div class="prog-fill" style="width:{{ p.progresso }}%"></div></div>
+            <div class="prog-bar" style="flex:1">
+              <div class="prog-fill" style="width:{{ p.progresso }}%; background-color: {{ progresso_cor(p.progresso) }}"></div>
+            </div>
             <small style="font-size:.72rem;color:var(--muted);white-space:nowrap">{{ p.progresso }}%</small>
           </div>
         </td>
-        <td>{{ p.responsavel or '—' }}</td>
+        <td>
+          {% if p.data_inicio and p.data_termino %}
+          <small>{{ p.data_inicio.strftime('%d/%m/%Y') }} - {{ p.data_termino.strftime('%d/%m/%Y') }}</small>
+          {% endif %}
+        </td>
+        <td>{{ p.nome_completo or p.responsavel or '—' }}</td>
         <td style="white-space:nowrap;display:flex;gap:.35rem">
           <a href="{{ url_for('admin_projeto_editar', id=p.id) }}" class="btn btn-outline btn-sm">Editar</a>
           <form method="post" action="{{ url_for('admin_projeto_excluir', id=p.id) }}" style="display:inline"

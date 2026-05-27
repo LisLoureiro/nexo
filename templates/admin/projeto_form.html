@@ -7,11 +7,41 @@
 
 {% block extra_styles %}
 <style>
-.form-layout { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
-.update-item { padding:.7rem 0; border-bottom:1px solid var(--paper); font-size:.85rem; }
-.update-item:last-child { border:none; }
-.update-item .meta { font-size:.72rem; color:var(--muted); margin-top:.2rem; }
-@media(max-width:900px){ .form-layout{ grid-template-columns:1fr } }
+/* Select styles with white background */
+select.form-control {
+  background: #ffffff !important;
+  color: #1a1f5e !important;
+  border: 1px solid #e0e0e0 !important;
+}
+select.form-control option {
+  background: #ffffff !important;
+  color: #1a1f5e !important;
+}
+select.form-control:focus {
+  border-color: #f5c200 !important;
+  background: #ffffff !important;
+  color: #1a1f5e !important;
+}
+select.form-control option:hover,
+select.form-control option:focus {
+  background: #f5f5f5 !important;
+  color: #1a1f5e !important;
+}
+
+.form-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; }
+.update-item { padding: .7rem 0; border-bottom: 1px solid var(--border-light); font-size: .85rem; }
+.update-item:last-child { border: none; }
+.update-item .meta { font-size: .72rem; color: rgba(255, 255, 255, 0.75); margin-top: .2rem; }
+.form-section { margin-bottom: 2rem; }
+.form-section h4 { color: #f5c200; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(245, 194, 0, 0.3); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { font-weight: 500; margin-bottom: 0.5rem; display: block; }
+.form-group small { color: #888; font-size: 0.85rem; }
+.checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
+.checkbox-group input[type="checkbox"] { margin: 0; }
+@media(max-width: 1200px) { .form-row { grid-template-columns: 1fr; } }
+@media(max-width: 900px) { .form-layout { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
@@ -23,64 +53,276 @@
     <div class="card-body">
       <form method="post">
         <input type="hidden" name="action" value="save">
-        <div class="form-group">
-          <label for="titulo">Título *</label>
-          <input id="titulo" name="titulo" class="form-control" type="text" required
-                 value="{{ projeto.titulo if projeto else '' }}">
+
+        <!-- Seção 1: Informações do Responsável -->
+        <div class="form-section">
+          <h4>Informações do Responsável</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nome_completo">Nome completo *</label>
+              <input id="nome_completo" name="nome_completo" class="form-control" type="text" required
+                     value="{{ projeto.nome_completo if projeto else '' }}">
+            </div>
+            <div class="form-group">
+              <label for="cargo">Cargo/Função *</label>
+              <input id="cargo" name="cargo" class="form-control" type="text" required
+                     value="{{ projeto.cargo if projeto else '' }}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">E-mail *</label>
+              <input id="email" name="email" class="form-control" type="email" required
+                     value="{{ projeto.email if projeto else '' }}">
+            </div>
+            <div class="form-group">
+              <label for="eixo">Eixo/Área *</label>
+              <select id="eixo" name="eixo" class="form-control" required>
+                <option value="">Selecione…</option>
+                <option value="Nexo nas Escolas" {% if projeto and projeto.eixo=='Nexo nas Escolas' %}selected{% endif %}>Nexo nas Escolas</option>
+                <option value="Eventos" {% if projeto and projeto.eixo=='Eventos' %}selected{% endif %}>Eventos</option>
+                <option value="Administrativo" {% if projeto and projeto.eixo=='Administrativo' %}selected{% endif %}>Administrativo</option>
+                <option value="Outro" {% if projeto and projeto.eixo=='Outro' %}selected{% endif %}>Outro</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="descricao">Descrição</label>
-          <textarea id="descricao" name="descricao" class="form-control" rows="5">{{ projeto.descricao if projeto else '' }}</textarea>
-        </div>
-        <div class="form-row">
+
+        <!-- Seção 2: Informações Básicas do Projeto -->
+        <div class="form-section">
+          <h4>Informações Básicas do Projeto</h4>
           <div class="form-group">
-            <label for="secretaria">Secretaria *</label>
-            <select id="secretaria" name="secretaria" class="form-control" required>
+            <label for="nome_projeto">Nome do Projeto *</label>
+            <input id="nome_projeto" name="nome_projeto" class="form-control" type="text" required
+                   value="{{ projeto.nome_projeto if projeto else '' }}">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="secretaria">Secretária *</label>
+              <select id="secretaria" name="secretaria" class="form-control" required>
+                <option value="">Selecione…</option>
+                {% for s in secretarias %}
+                <option value="{{ s }}" {% if projeto and projeto.secretaria==s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="status">Status</label>
+              <select id="status" name="status" class="form-control">
+                {% for s in status_list %}
+                <option value="{{ s }}" {% if projeto and projeto.status==s %}selected{% elif not projeto and s=='Planejamento' %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data_inicio">Data de Início *</label>
+              <input id="data_inicio" name="data_inicio" class="form-control" type="date" required
+                     value="{{ projeto.data_inicio.strftime('%Y-%m-%d') if projeto and projeto.data_inicio else '' }}">
+            </div>
+            <div class="form-group">
+              <label for="data_termino">Data de Término *</label>
+              <input id="data_termino" name="data_termino" class="form-control" type="date" required
+                     value="{{ projeto.data_termino.strftime('%Y-%m-%d') if projeto and projeto.data_termino else '' }}">
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção 3: Público Alvo -->
+        <div class="form-section">
+          <h4>Público Alvo</h4>
+          <div class="form-group">
+            <label for="publico_que_pretende_atingir">Público que pretende atingir *</label>
+            <textarea id="publico_que_pretende_atingir" name="publico_que_pretende_atingir" class="form-control" rows="3" required>{{ projeto.publico_que_pretende_atingir if projeto else '' }}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="faixa_etaria">Faixa Etária</label>
+              <select id="faixa_etaria" name="faixa_etaria" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="0-12 anos" {% if projeto and projeto.faixa_etaria=='0-12 anos' %}selected{% endif %}>0-12 anos</option>
+                <option value="13-17 anos" {% if projeto and projeto.faixa_etaria=='13-17 anos' %}selected{% endif %}>13-17 anos</option>
+                <option value="18-35 anos" {% if projeto and projeto.faixa_etaria=='18-35 anos' %}selected{% endif %}>18-35 anos</option>
+                <option value="36-60 anos" {% if projeto and projeto.faixa_etaria=='36-60 anos' %}selected{% endif %}>36-60 anos</option>
+                <option value="60+ anos" {% if projeto and projeto.faixa_etaria=='60+ anos' %}selected{% endif %}>60+ anos</option>
+                <option value="Todas as idades" {% if projeto and projeto.faixa_etaria=='Todas as idades' %}selected{% endif %}>Todas as idades</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="genero">Gênero</label>
+              <select id="genero" name="genero" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="Masculino" {% if projeto and projeto.genero=='Masculino' %}selected{% endif %}>Masculino</option>
+                <option value="Feminino" {% if projeto and projeto.genero=='Feminino' %}selected{% endif %}>Feminino</option>
+                <option value="Misturado" {% if projeto and projeto.genero=='Misturado' %}selected{% endif %}>Misturado</option>
+                <option value="Diverso" {% if projeto and projeto.genero=='Diverso' %}selected{% endif %}>Diverso</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="publico">Tipo de Público</label>
+              <select id="publico" name="publico" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="Interno" {% if projeto and projeto.publico=='Interno' %}selected{% endif %}>Interno</option>
+                <option value="Externo" {% if projeto and projeto.publico=='Externo' %}selected{% endif %}>Externo</option>
+                <option value="Misto" {% if projeto and projeto.publico=='Misto' %}selected{% endif %}>Misto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="estimativa_alcance">Estimativa de Público (quantidade)</label>
+              <input id="estimativa_alcance" name="estimativa_alcance" class="form-control" type="number" min="0"
+                     value="{{ projeto.estimativa_alcance if projeto and projeto.estimativa_alcance else '' }}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="regiao_administrativa">Região Administrativa Brasileira Impactada</label>
+            <select id="regiao_administrativa" name="regiao_administrativa" class="form-control">
               <option value="">Selecione…</option>
-              {% for s in secretarias %}
-              <option value="{{ s }}" {% if projeto and projeto.secretaria==s %}selected{% endif %}>{{ s }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="status">Status</label>
-            <select id="status" name="status" class="form-control">
-              {% for s in status_list %}
-              <option value="{{ s }}" {% if projeto and projeto.status==s %}selected{% elif not projeto and s=='Planejamento' %}selected{% endif %}>{{ s }}</option>
-              {% endfor %}
+              <option value="Norte" {% if projeto and projeto.regiao_administrativa=='Norte' %}selected{% endif %}>Norte</option>
+              <option value="Nordeste" {% if projeto and projeto.regiao_administrativa=='Nordeste' %}selected{% endif %}>Nordeste</option>
+              <option value="Sudeste" {% if projeto and projeto.regiao_administrativa=='Sudeste' %}selected{% endif %}>Sudeste</option>
+              <option value="Sul" {% if projeto and projeto.regiao_administrativa=='Sul' %}selected{% endif %}>Sul</option>
+              <option value="Centro-Oeste" {% if projeto and projeto.regiao_administrativa=='Centro-Oeste' %}selected{% endif %}>Centro-Oeste</option>
+              <option value="Todas as regiões" {% if projeto and projeto.regiao_administrativa=='Todas as regiões' %}selected{% endif %}>Todas as regiões</option>
             </select>
           </div>
         </div>
-        <div class="form-group">
-          <label for="responsavel">Responsável</label>
-          <input id="responsavel" name="responsavel" class="form-control" type="text"
-                 value="{{ projeto.responsavel if projeto else '' }}">
-        </div>
-        <div class="form-row">
+
+        <!-- Seção 4: Detalhes do Projeto -->
+        <div class="form-section">
+          <h4>Detalhes do Projeto</h4>
           <div class="form-group">
-            <label for="data_inicio">Data de início</label>
-            <input id="data_inicio" name="data_inicio" class="form-control" type="date"
-                   value="{{ projeto.data_inicio.strftime('%Y-%m-%d') if projeto and projeto.data_inicio else '' }}">
+            <label for="descricao_resumo">Descrição Resumida *</label>
+            <textarea id="descricao_resumo" name="descricao_resumo" class="form-control" rows="4" required>{{ projeto.descricao_resumo if projeto else '' }}</textarea>
+          </div>
+          <div class="form-group checkbox-group">
+            <input id="possui_prioritario" name="possui_prioritario" type="checkbox"
+                   {% if projeto and projeto.possui_prioritario %}checked{% endif %}>
+            <label for="possui_prioritario">Possui público prioritário?</label>
           </div>
           <div class="form-group">
-            <label for="data_fim">Previsão de término</label>
-            <input id="data_fim" name="data_fim" class="form-control" type="date"
-                   value="{{ projeto.data_fim.strftime('%Y-%m-%d') if projeto and projeto.data_fim else '' }}">
+            <label for="publico_prioritario">Público Prioritário</label>
+            <textarea id="publico_prioritario" name="publico_prioritario" class="form-control" rows="2"
+                      placeholder="Descreva o público prioritário...">{{ projeto.publico_prioritario if projeto else '' }}</textarea>
           </div>
         </div>
-        <div class="form-group">
-          <label for="orcamento">Orçamento (R$)</label>
-          <input id="orcamento" name="orcamento" class="form-control" type="number" step="0.01" min="0"
-                 value="{{ projeto.orcamento if projeto and projeto.orcamento else '' }}">
-        </div>
-        <div class="form-group">
-          <label for="progresso">Progresso: <span id="prog-label">{{ projeto.progresso if projeto else 0 }}%</span></label>
-          <div class="range-wrap">
-            <input id="progresso" name="progresso" type="range" min="0" max="100" step="1"
-                   value="{{ projeto.progresso if projeto else 0 }}"
-                   oninput="document.getElementById('prog-label').textContent=this.value+'%'">
+
+        <!-- Seção 5: Objetivos e Metodologia -->
+        <div class="form-section">
+          <h4>Objetivos e Metodologia</h4>
+          <div class="form-group">
+            <label for="objetivos">Objetivos do Projeto *</label>
+            <textarea id="objetivos" name="objetivos" class="form-control" rows="4" required>{{ projeto.objetivos if projeto else '' }}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="grau_clareza_objetivos">Grau de Clareza dos Objetivos (1-5)</label>
+              <select id="grau_clareza_objetivos" name="grau_clareza_objetivos" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="1" {% if projeto and projeto.grau_clareza_objetivos==1 %}selected{% endif %}>1 - Muito Baixo</option>
+                <option value="2" {% if projeto and projeto.grau_clareza_objetivos==2 %}selected{% endif %}>2 - Baixo</option>
+                <option value="3" {% if projeto and projeto.grau_clareza_objetivos==3 %}selected{% endif %}>3 - Médio</option>
+                <option value="4" {% if projeto and projeto.grau_clareza_objetivos==4 %}selected{% endif %}>4 - Alto</option>
+                <option value="5" {% if projeto and projeto.grau_clareza_objetivos==5 %}selected{% endif %}>5 - Muito Alto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="grau_eficacia_viabilidade">Grau de Eficácia/Viabilidade (1-5)</label>
+              <select id="grau_eficacia_viabilidade" name="grau_eficacia_viabilidade" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="1" {% if projeto and projeto.grau_eficacia_viabilidade==1 %}selected{% endif %}>1 - Muito Baixo</option>
+                <option value="2" {% if projeto and projeto.grau_eficacia_viabilidade==2 %}selected{% endif %}>2 - Baixo</option>
+                <option value="3" {% if projeto and projeto.grau_eficacia_viabilidade==3 %}selected{% endif %}>3 - Médio</option>
+                <option value="4" {% if projeto and projeto.grau_eficacia_viabilidade==4 %}selected{% endif %}>4 - Alto</option>
+                <option value="5" {% if projeto and projeto.grau_eficacia_viabilidade==5 %}selected{% endif %}>5 - Muito Alto</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="metodologia">Metodologia *</label>
+            <textarea id="metodologia" name="metodologia" class="form-control" rows="3" required>{{ projeto.metodologia if projeto else '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="etapas">Etapas do Projeto *</label>
+            <textarea id="etapas" name="etapas" class="form-control" rows="3" required>{{ projeto.etapas if projeto else '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="cronograma_responsaveis">Cronograma e Responsáveis *</label>
+            <textarea id="cronograma_responsaveis" name="cronograma_responsaveis" class="form-control" rows="3" required>{{ projeto.cronograma_responsaveis if projeto else '' }}</textarea>
           </div>
         </div>
+
+        <!-- Seção 6: Recursos e Monitoramento -->
+        <div class="form-section">
+          <h4>Recursos e Monitoramento</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="quantidade_pessoas">Quantidade de Pessoas Envolvidas</label>
+              <input id="quantidade_pessoas" name="quantidade_pessoas" class="form-control" type="number" min="0"
+                     value="{{ projeto.quantidade_pessoas if projeto and projeto.quantidade_pessoas else '' }}">
+            </div>
+            <div class="form-group">
+              <label for="orcamento">Orçamento (R$)</label>
+              <input id="orcamento" name="orcamento" class="form-control" type="number" step="0.01" min="0"
+                     value="{{ projeto.orcamento if projeto and projeto.orcamento else '' }}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="frequencia_acompanhamento">Frequência de Acompanhamento</label>
+              <select id="frequencia_acompanhamento" name="frequencia_acompanhamento" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="Diário" {% if projeto and projeto.frequencia_acompanhamento=='Diário' %}selected{% endif %}>Diário</option>
+                <option value="Semanal" {% if projeto and projeto.frequencia_acompanhamento=='Semanal' %}selected{% endif %}>Semanal</option>
+                <option value="Quinzenal" {% if projeto and projeto.frequencia_acompanhamento=='Quinzenal' %}selected{% endif %}>Quinzenal</option>
+                <option value="Mensal" {% if projeto and projeto.frequencia_acompanhamento=='Mensal' %}selected{% endif %}>Mensal</option>
+                <option value="Trimestral" {% if projeto and projeto.frequencia_acompanhamento=='Trimestral' %}selected{% endif %}>Trimestral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="nivel_maturidade">Nível de Maturidade</label>
+              <select id="nivel_maturidade" name="nivel_maturidade" class="form-control">
+                <option value="">Selecione…</option>
+                <option value="Ideia" {% if projeto and projeto.nivel_maturidade=='Ideia' %}selected{% endif %}>Ideia</option>
+                <option value="Planejamento" {% if projeto and projeto.nivel_maturidade=='Planejamento' %}selected{% endif %}>Planejamento</option>
+                <option value="Em Execução" {% if projeto and projeto.nivel_maturidade=='Em Execução' %}selected{% endif %}>Em Execução</option>
+                <option value="Concluído" {% if projeto and projeto.nivel_maturidade=='Concluído' %}selected{% endif %}>Concluído</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="acompanhar_desenvolvimento">Onde pode-se acompanhar o desenvolvimento?</label>
+            <textarea id="acompanhar_desenvolvimento" name="acompanhar_desenvolvimento" class="form-control" rows="2"
+                      placeholder="Plataforma, reuniões, relatórios...">{{ projeto.acompanhar_desenvolvimento if projeto else '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="documentos_links">Documentos (Google Drive)</label>
+            <textarea id="documentos_links" name="documentos_links" class="form-control" rows="2"
+                      placeholder="Cole os links dos documentos do Drive aqui...">{{ projeto.documentos_links if projeto else '' }}</textarea>
+            <small>Insira um link por linha</small>
+          </div>
+        </div>
+
+        <!-- Seção 7: Progresso -->
+        <div class="form-section">
+          <h4>Progresso do Projeto</h4>
+          <div class="form-group">
+            <label for="responsavel">Responsável Principal (se diferente do acima)</label>
+            <input id="responsavel" name="responsavel" class="form-control" type="text"
+                   value="{{ projeto.responsavel if projeto else '' }}">
+          </div>
+          <div class="form-group">
+            <label for="progresso">Progresso: <span id="prog-label">{{ projeto.progresso if projeto else 0 }}%</span></label>
+            <div class="range-wrap">
+              <input id="progresso" name="progresso" type="range" min="0" max="100" step="1"
+                     value="{{ projeto.progresso if projeto else 0 }}"
+                     oninput="document.getElementById('prog-label').textContent=this.value+'%'">
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">{% if projeto %}Salvar alterações{% else %}Criar projeto{% endif %}</button>
           <a href="{{ url_for('admin_projetos') }}" class="btn btn-outline">Cancelar</a>

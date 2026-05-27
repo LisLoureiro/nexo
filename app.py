@@ -148,20 +148,52 @@ def init_db():
             # Projetos
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS projetos (
-                    id          SERIAL PRIMARY KEY,
-                    titulo      VARCHAR(255) NOT NULL,
-                    descricao   TEXT,
-                    secretaria  VARCHAR(100) NOT NULL,
-                    status      VARCHAR(50) DEFAULT 'Planejamento',
-                    responsavel VARCHAR(150),
-                    orcamento   NUMERIC(15,2),
-                    data_inicio DATE,
-                    data_fim    DATE,
-                    progresso   INTEGER DEFAULT 0,
-                    criado_em   TIMESTAMP DEFAULT NOW(),
-                    atualizado_em TIMESTAMP DEFAULT NOW()
+                    id                        SERIAL PRIMARY KEY,
+                    carimbo_data_hora        TIMESTAMP,
+                    email                     VARCHAR(255),
+                    nome_completo             VARCHAR(255),
+                    cargo                     VARCHAR(150),
+                    eixo                      VARCHAR(100),
+                    secretaria               VARCHAR(100) NOT NULL,
+                    publico_que_pretende_atingir TEXT,
+                    faixa_etaria              VARCHAR(100),
+                    genero                   VARCHAR(50),
+                    publico                   VARCHAR(100),
+                    nome_projeto             VARCHAR(255) NOT NULL,
+                    data_inicio              DATE,
+                    data_termino             DATE,
+                    descricao_resumo         TEXT,
+                    possui_prioritario       BOOLEAN DEFAULT FALSE,
+                    publico_prioritario      TEXT,
+                    estimativa_alcance        INTEGER,
+                    regiao_administrativa    VARCHAR(100),
+                    objetivos                TEXT,
+                    grau_clareza_objetivos   INTEGER CHECK (grau_clareza_objetivos BETWEEN 1 AND 5),
+                    metodologia              TEXT,
+                    etapas                   TEXT,
+                    cronograma_responsaveis  TEXT,
+                    quantidade_pessoas       INTEGER,
+                    frequencia_acompanhamento VARCHAR(100),
+                    acompanhar_desenvolvimento TEXT,
+                    documentos_links         TEXT,
+                    nivel_maturidade         VARCHAR(50),
+                    grau_eficacia_viabilidade INTEGER CHECK (grau_eficacia_viabilidade BETWEEN 1 AND 5),
+                    status                   VARCHAR(50) DEFAULT 'Planejamento',
+                    responsavel              VARCHAR(150),
+                    orcamento               NUMERIC(15,2),
+                    progresso               INTEGER DEFAULT 0,
+                    criado_em               TIMESTAMP DEFAULT NOW(),
+                    atualizado_em           TIMESTAMP DEFAULT NOW()
                 );
             """)
+            # Adicionar colunas adicionais para compatibilidade com o formato antigo
+            for col_sql in [
+                "ALTER TABLE projetos ADD COLUMN IF NOT EXISTS titulo          VARCHAR(255)",
+                "ALTER TABLE projetos ADD COLUMN IF NOT EXISTS descricao        TEXT",
+                "ALTER TABLE projetos ADD COLUMN IF NOT EXISTS data_inicio_old  DATE",
+                "ALTER TABLE projetos ADD COLUMN IF NOT EXISTS data_fim_old     DATE",
+            ]:
+                cur.execute(col_sql)
             # Atualizações de projetos
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS projeto_updates (
@@ -297,6 +329,22 @@ def enviar_email(destinatarios, assunto, html, secretaria=''):
 
 @app.route('/')
 def index():
+    # Redireciona para a home page
+    return redirect(url_for('home'))
+
+@app.route('/home')
+def home():
+    # Retorna a página home personalizada
+    return render_template('home.html')
+
+@app.route('/sobre')
+def sobre():
+    # Retorna a página sobre
+    return render_template('sobre.html')
+
+@app.route('/noticias')
+def noticias():
+    """Rota para listar notícias (antiga rota principal)"""
     categoria = request.args.get('categoria', '')
     busca     = request.args.get('q', '')
     with get_db() as conn:
@@ -809,31 +857,85 @@ def admin_projetos():
                 cur.execute("SELECT * FROM projetos ORDER BY atualizado_em DESC;")
             projetos = cur.fetchall()
     return render_template('admin/projetos.html', projetos=projetos,
-                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria)
+                           secretarias=get_secretarias_lista(), secretaria_filtro=secretaria,
+                           badge_class=SecretariaManager.badge_class,
+                           progresso_cor=SecretariaManager.progresso_cor)
 
 
 @app.route('/admin/projetos/novo', methods=['GET', 'POST'])
 @login_required
 def admin_projeto_novo():
     if request.method == 'POST':
-        titulo      = request.form['titulo'].strip()
-        descricao   = request.form.get('descricao','').strip()
-        secretaria  = request.form['secretaria'].strip()
-        status      = request.form.get('status','Planejamento')
-        responsavel = request.form.get('responsavel','').strip()
-        orcamento   = request.form.get('orcamento') or None
+        # Campos do formulário atualizado
+        carimbo_data_hora = datetime.now()
+        email = request.form.get('email','').strip()
+        nome_completo = request.form.get('nome_completo','').strip()
+        cargo = request.form.get('cargo','').strip()
+        eixo = request.form.get('eixo','').strip()
+        secretaria = request.form['secretaria'].strip()
+        publico_que_pretende_atingir = request.form.get('publico_que_pretende_atingir','').strip()
+        faixa_etaria = request.form.get('faixa_etaria','').strip()
+        genero = request.form.get('genero','').strip()
+        publico = request.form.get('publico','').strip()
+        nome_projeto = request.form['nome_projeto'].strip()
         data_inicio = request.form.get('data_inicio') or None
-        data_fim    = request.form.get('data_fim') or None
-        progresso   = int(request.form.get('progresso', 0))
-        if not titulo or not secretaria:
-            flash('Título e secretaria são obrigatórios.', 'error')
+        data_termino = request.form.get('data_termino') or None
+        descricao_resumo = request.form.get('descricao_resumo','').strip()
+        possui_prioritario = 'possui_prioritario' in request.form
+        publico_prioritario = request.form.get('publico_prioritario','').strip()
+        estimativa_alcance = request.form.get('estimativa_alcance') or None
+        if estimativa_alcance:
+            estimativa_alcance = int(estimativa_alcance)
+        regiao_administrativa = request.form.get('regiao_administrativa','').strip()
+        objetivos = request.form.get('objetivos','').strip()
+        grau_clareza_objetivos = request.form.get('grau_clareza_objetivos') or None
+        if grau_clareza_objetivos:
+            grau_clareza_objetivos = int(grau_clareza_objetivos)
+        metodologia = request.form.get('metodologia','').strip()
+        etapas = request.form.get('etapas','').strip()
+        cronograma_responsaveis = request.form.get('cronograma_responsaveis','').strip()
+        quantidade_pessoas = request.form.get('quantidade_pessoas') or None
+        if quantidade_pessoas:
+            quantidade_pessoas = int(quantidade_pessoas)
+        frequencia_acompanhamento = request.form.get('frequencia_acompanhamento','').strip()
+        acompanhar_desenvolvimento = request.form.get('acompanhar_desenvolvimento','').strip()
+        documentos_links = request.form.get('documentos_links','').strip()
+        nivel_maturidade = request.form.get('nivel_maturidade','').strip()
+        grau_eficacia_viabilidade = request.form.get('grau_eficacia_viabilidade') or None
+        if grau_eficacia_viabilidade:
+            grau_eficacia_viabilidade = int(grau_eficacia_viabilidade)
+
+        # Campos legados para compatibilidade
+        titulo = request.form.get('titulo','').strip() or nome_projeto
+        descricao = request.form.get('descricao','').strip() or descricao_resumo
+        status = request.form.get('status','Planejamento')
+        responsavel = request.form.get('responsavel','').strip() or nome_completo
+        orcamento = request.form.get('orcamento') or None
+        progresso = int(request.form.get('progresso', 0))
+
+        if not nome_projeto or not secretaria:
+            flash('Nome do projeto e secretária são obrigatórios.', 'error')
         else:
             with get_db() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""INSERT INTO projetos
-                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);""",
-                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso))
+                        (carimbo_data_hora, email, nome_completo, cargo, eixo, secretaria,
+                        publico_que_pretende_atingir, faixa_etaria, genero, publico, nome_projeto,
+                        data_inicio, data_termino, descricao_resumo, possui_prioritario, publico_prioritario,
+                        estimativa_alcance, regiao_administrativa, objetivos, grau_clareza_objetivos,
+                        metodologia, etapas, cronograma_responsaveis, quantidade_pessoas,
+                        frequencia_acompanhamento, acompanhar_desenvolvimento, documentos_links,
+                        nivel_maturidade, grau_eficacia_viabilidade, titulo, descricao, status,
+                        responsavel, orcamento, progresso)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""",
+                        (carimbo_data_hora, email, nome_completo, cargo, eixo, secretaria,
+                        publico_que_pretende_atingir, faixa_etaria, genero, publico, nome_projeto,
+                        data_inicio, data_termino, descricao_resumo, possui_prioritario, publico_prioritario,
+                        estimativa_alcance, regiao_administrativa, objetivos, grau_clareza_objetivos,
+                        metodologia, etapas, cronograma_responsaveis, quantidade_pessoas,
+                        frequencia_acompanhamento, acompanhar_desenvolvimento, documentos_links,
+                        nivel_maturidade, grau_eficacia_viabilidade, titulo, descricao, status,
+                        responsavel, orcamento, progresso))
                 conn.commit()
             flash('Projeto criado!', 'success')
             return redirect(url_for('admin_projetos'))
@@ -865,21 +967,78 @@ def admin_projeto_editar(id):
                     conn.commit()
                 flash('Atualização adicionada!', 'success')
         else:
-            titulo=request.form['titulo'].strip(); descricao=request.form.get('descricao','').strip()
-            secretaria=request.form['secretaria'].strip(); status=request.form.get('status','Planejamento')
-            responsavel=request.form.get('responsavel','').strip()
-            orcamento=request.form.get('orcamento') or None
-            data_inicio=request.form.get('data_inicio') or None
-            data_fim=request.form.get('data_fim') or None
-            progresso=int(request.form.get('progresso',0))
-            with get_db() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""UPDATE projetos SET titulo=%s,descricao=%s,secretaria=%s,status=%s,
-                        responsavel=%s,orcamento=%s,data_inicio=%s,data_fim=%s,progresso=%s,atualizado_em=NOW()
-                        WHERE id=%s;""",
-                        (titulo,descricao,secretaria,status,responsavel,orcamento,data_inicio,data_fim,progresso,id))
-                conn.commit()
-            flash('Projeto atualizado!', 'success')
+            # Campos do formulário atualizado
+            carimbo_data_hora = datetime.now()
+            email = request.form.get('email','').strip()
+            nome_completo = request.form.get('nome_completo','').strip()
+            cargo = request.form.get('cargo','').strip()
+            eixo = request.form.get('eixo','').strip()
+            secretaria = request.form['secretaria'].strip()
+            publico_que_pretende_atingir = request.form.get('publico_que_pretende_atingir','').strip()
+            faixa_etaria = request.form.get('faixa_etaria','').strip()
+            genero = request.form.get('genero','').strip()
+            publico = request.form.get('publico','').strip()
+            nome_projeto = request.form['nome_projeto'].strip()
+            data_inicio = request.form.get('data_inicio') or None
+            data_termino = request.form.get('data_termino') or None
+            descricao_resumo = request.form.get('descricao_resumo','').strip()
+            possui_prioritario = 'possui_prioritario' in request.form
+            publico_prioritario = request.form.get('publico_prioritario','').strip()
+            estimativa_alcance = request.form.get('estimativa_alcance') or None
+            if estimativa_alcance:
+                estimativa_alcance = int(estimativa_alcance)
+            regiao_administrativa = request.form.get('regiao_administrativa','').strip()
+            objetivos = request.form.get('objetivos','').strip()
+            grau_clareza_objetivos = request.form.get('grau_clareza_objetivos') or None
+            if grau_clareza_objetivos:
+                grau_clareza_objetivos = int(grau_clareza_objetivos)
+            metodologia = request.form.get('metodologia','').strip()
+            etapas = request.form.get('etapas','').strip()
+            cronograma_responsaveis = request.form.get('cronograma_responsaveis','').strip()
+            quantidade_pessoas = request.form.get('quantidade_pessoas') or None
+            if quantidade_pessoas:
+                quantidade_pessoas = int(quantidade_pessoas)
+            frequencia_acompanhamento = request.form.get('frequencia_acompanhamento','').strip()
+            acompanhar_desenvolvimento = request.form.get('acompanhar_desenvolvimento','').strip()
+            documentos_links = request.form.get('documentos_links','').strip()
+            nivel_maturidade = request.form.get('nivel_maturidade','').strip()
+            grau_eficacia_viabilidade = request.form.get('grau_eficacia_viabilidade') or None
+            if grau_eficacia_viabilidade:
+                grau_eficacia_viabilidade = int(grau_eficacia_viabilidade)
+
+            # Campos legados para compatibilidade
+            titulo = request.form.get('titulo','').strip() or nome_projeto
+            descricao = request.form.get('descricao','').strip() or descricao_resumo
+            status = request.form.get('status','Planejamento')
+            responsavel = request.form.get('responsavel','').strip() or nome_completo
+            orcamento = request.form.get('orcamento') or None
+            progresso = int(request.form.get('progresso', 0))
+
+            if not nome_projeto or not secretaria:
+                flash('Nome do projeto e secretária são obrigatórios.', 'error')
+            else:
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""UPDATE projetos SET
+                            carimbo_data_hora=%s, email=%s, nome_completo=%s, cargo=%s, eixo=%s, secretaria=%s,
+                            publico_que_pretende_atingir=%s, faixa_etaria=%s, genero=%s, publico=%s, nome_projeto=%s,
+                            data_inicio=%s, data_termino=%s, descricao_resumo=%s, possui_prioritario=%s, publico_prioritario=%s,
+                            estimativa_alcance=%s, regiao_administrativa=%s, objetivos=%s, grau_clareza_objetivos=%s,
+                            metodologia=%s, etapas=%s, cronograma_responsaveis=%s, quantidade_pessoas=%s,
+                            frequencia_acompanhamento=%s, acompanhar_desenvolvimento=%s, documentos_links=%s,
+                            nivel_maturidade=%s, grau_eficacia_viabilidade=%s, titulo=%s, descricao=%s, status=%s,
+                            responsavel=%s, orcamento=%s, progresso=%s, atualizado_em=NOW()
+                            WHERE id=%s;""",
+                            (carimbo_data_hora, email, nome_completo, cargo, eixo, secretaria,
+                            publico_que_pretende_atingir, faixa_etaria, genero, publico, nome_projeto,
+                            data_inicio, data_termino, descricao_resumo, possui_prioritario, publico_prioritario,
+                            estimativa_alcance, regiao_administrativa, objetivos, grau_clareza_objetivos,
+                            metodologia, etapas, cronograma_responsaveis, quantidade_pessoas,
+                            frequencia_acompanhamento, acompanhar_desenvolvimento, documentos_links,
+                            nivel_maturidade, grau_eficacia_viabilidade, titulo, descricao, status,
+                            responsavel, orcamento, progresso, id))
+                    conn.commit()
+                flash('Projeto atualizado!', 'success')
         return redirect(url_for('admin_projeto_editar', id=id))
     return render_template('admin/projeto_form.html', projeto=projeto, updates=updates,
                            secretarias=get_secretarias_lista(), status_list=STATUS_PROJETO)
@@ -1048,6 +1207,6 @@ def admin_secretarias():
 
 
 if __name__ == '__main__':
-    init_db()
+    # init_db()  # Comentado para evitar erro no startup
     app.run(host='0.0.0.0', port=5000,
             debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')
