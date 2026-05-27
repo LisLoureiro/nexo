@@ -852,9 +852,9 @@ def admin_projetos():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             if secretaria:
-                cur.execute("SELECT * FROM projetos WHERE secretaria=%s ORDER BY atualizado_em DESC;", (secretaria,))
+                cur.execute("SELECT *, COALESCE(nome_projeto, titulo) as nome_projeto_display FROM projetos WHERE secretaria=%s ORDER BY atualizado_em DESC;", (secretaria,))
             else:
-                cur.execute("SELECT * FROM projetos ORDER BY atualizado_em DESC;")
+                cur.execute("SELECT *, COALESCE(nome_projeto, titulo) as nome_projeto_display FROM projetos ORDER BY atualizado_em DESC;")
             projetos = cur.fetchall()
     return render_template('admin/projetos.html', projetos=projetos,
                            secretarias=get_secretarias_lista(), secretaria_filtro=secretaria,

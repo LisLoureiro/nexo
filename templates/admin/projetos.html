@@ -43,7 +43,7 @@
       {% for p in projetos %}
       <tr>
         <td>
-          <strong>{{ p.nome_projeto[:55] }}{% if p.nome_projeto|length>55 %}…{% endif %}</strong>
+          <strong>{{ p.nome_projeto_display[:55] }}{% if p.nome_projeto_display|length>55 %}…{% endif %}</strong>
           <br><small style="color:var(--muted)">{{ p.cargo or p.nome_completo }}</small>
         </td>
         <td>{{ p.secretaria }}</td>
